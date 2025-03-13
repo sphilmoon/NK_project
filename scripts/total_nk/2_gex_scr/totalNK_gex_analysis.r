@@ -63,20 +63,24 @@ head(rownames(seurat_objects[[1]]), 20)
  
 # Perform QC filtering and generate violin plots
 for (i in 1:length(seurat_objects)) {
-  # Calculate mitochondrial percentage (adjusted pattern)
-  seurat_objects[[i]][["percent.mt"]] <- PercentageFeatureSet(seurat_objects[[i]], pattern = "^mt-")  # Try this first
+  # Define nCount_RNA threshold based on animal name
+  animal_name <- names(seurat_objects)[i]
+  nCount_threshold <- switch(animal_name,
+                             "Animal27" = "nCount_RNA > 500 & nCount_RNA < 7500",
+                             "Animal28" = "nCount_RNA > 500 & nCount_RNA < 10000",
+                             "Animal51" = "nCount_RNA > 500 & nCount_RNA < 5000",
+                             "Animal52" = "nCount_RNA > 500 & nCount_RNA < 7500",
+                             "nCount_RNA > 1000 & nCount_RNA < 10000" # Default threshold for other animals
+  )
   
-  # Filter based on updated QC thresholds
+  # Filter based on updated QC thresholds (nFeature_RNA remains constant)
   seurat_objects[[i]] <- subset(seurat_objects[[i]], 
                                 subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & 
-                                         nCount_RNA > 1000 & nCount_RNA < 10000 & 
-                                         percent.mt < 10)
-  # to see the gene names
-  head(rownames(seurat_objects[[1]]))
+                                         eval(parse(text = nCount_threshold)))
   
   # Create and save violin plot
   p <- VlnPlot(seurat_objects[[i]], 
-               features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), 
+               features = c("nFeature_RNA", "nCount_RNA"), 
                ncol = 3) +
        ggtitle(paste("QC for", names(seurat_objects)[i]))
   
