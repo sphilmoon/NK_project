@@ -1,99 +1,151 @@
-# Load libraries
-library(Seurat)
-library(SeuratDisk)
-library(dplyr)
-library(ggplot2)
-library(DESeq2)
+# # Load libraries
+# library(Seurat)
+# library(SeuratDisk)
+# library(dplyr)
+# library(ggplot2)
+# library(DESeq2)
+# library(patchwork)
+# library(cowplot)
  
-# Define file paths and sample names
-file_paths <- list(
-  "/home/rawdata/total_nk/animal25_totalnk_filtered_feature_bc_matrix.h5",
-  "/home/rawdata/total_nk/animal27_totalnk_filtered_feature_bc_matrix.h5",
-  "/home/rawdata/total_nk/animal51_totalnk_filtered_feature_bc_matrix.h5",
-  "/home/rawdata/total_nk/animal26_totalnk_filtered_feature_bc_matrix.h5",
-  "/home/rawdata/total_nk/animal28_totalnk_filtered_feature_bc_matrix.h5",
-  "/home/rawdata/total_nk/animal52_totalnk_filtered_feature_bc_matrix.h5"
-)
-sample_names <- c("Animal25", "Animal27", "Animal51", "Animal26", "Animal28", "Animal52")
+# # Define file paths and sample names
+# file_paths <- list(
+#   "/home/rawdata/total_nk/animal25_totalnk_filtered_feature_bc_matrix.h5",
+#   "/home/rawdata/total_nk/animal27_totalnk_filtered_feature_bc_matrix.h5",
+#   "/home/rawdata/total_nk/animal51_totalnk_filtered_feature_bc_matrix.h5",
+#   "/home/rawdata/total_nk/animal26_totalnk_filtered_feature_bc_matrix.h5",
+#   "/home/rawdata/total_nk/animal28_totalnk_filtered_feature_bc_matrix.h5",
+#   "/home/rawdata/total_nk/animal52_totalnk_filtered_feature_bc_matrix.h5"
+# )
+# sample_names <- c("Animal25", "Animal27", "Animal51", "Animal26", "Animal28", "Animal52")
  
-# step 1: Load individual H5 files into Seurat objects
-seurat_objects <- mapply(function(file, name) {
-  data <- Read10X_h5(file)
-  seurat_obj <- CreateSeuratObject(counts = data, project = name, min.cells = 3, min.features = 200)
-  seurat_obj$sample <- name  # Add sample metadata
-  return(seurat_obj)
-}, file_paths, sample_names, SIMPLIFY = FALSE)
+# # 1. Load individual H5 files into Seurat objects
+# seurat_objects <- mapply(function(file, name) {
+#   data <- Read10X_h5(file)
+#   seurat_obj <- CreateSeuratObject(counts = data, project = name, min.cells = 3, min.features = 200)
+#   seurat_obj$sample <- name  # Add sample metadata
+#   return(seurat_obj)
+# }, file_paths, sample_names, SIMPLIFY = FALSE)
  
-# Assign meaningful names to the list
-names(seurat_objects) <- sample_names
+# # Assign meaningful names to the list
+# names(seurat_objects) <- sample_names
  
-# Print sample information with details
-for (name in names(seurat_objects)) {
-  cat("Sample:", name, "\n")
-  print(seurat_objects[[name]])
-  cat("Number of cells:", ncol(seurat_objects[[name]]), "\n")
-  cat("Number of genes:", nrow(seurat_objects[[name]]), "\n\n")
-}
+# # Print sample information with details
+# for (name in names(seurat_objects)) {
+#   cat("Sample:", name, "\n")
+#   print(seurat_objects[[name]])
+#   cat("Number of cells:", ncol(seurat_objects[[name]]), "\n")
+#   cat("Number of genes:", nrow(seurat_objects[[name]]), "\n\n")
+# }
  
-# Optional: Save the list for later use
-saveRDS(seurat_objects, "seurat_objects_list.rds")
+# # Optional: Save the list for later use
+# saveRDS(seurat_objects, "seurat_objects_list.rds")
  
+# # 2. quality control and pre-processing
+# # Load the saved RDS file
+# seurat_objects <- readRDS("seurat_objects_list.rds")
  
+# # Verify the loaded objects (optional)
+# cat("Number of samples loaded:", length(seurat_objects), "\n")
+# lapply(names(seurat_objects), function(name) {
+#   cat("Sample:", name, " - Cells:", ncol(seurat_objects[[name]]), " Genes:", nrow(seurat_objects[[name]]), "\n")
+# })
+
+# # to see the gene names
+# head(rownames(seurat_objects[[1]]), 20)
+
+# # Create a list to store all combined plots
+# combined_plots <- list()
+
+# # Perform QC filtering and generate violin plots
+# for (i in 1:length(seurat_objects)) {
+#   # Define animal name
+#   animal_name <- names(seurat_objects)[i]
+  
+#   # Apply QC filtering based on animal name
+#   if (animal_name == "Animal27") {
+#     seurat_objects[[i]] <- subset(seurat_objects[[i]], 
+#                                   subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & 
+#                                            nCount_RNA > 250 & nCount_RNA < 7500)
+#   } else if (animal_name == "Animal28") {
+#     seurat_objects[[i]] <- subset(seurat_objects[[i]], 
+#                                   subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & 
+#                                            nCount_RNA > 250 & nCount_RNA < 10000)
+#   } else if (animal_name == "Animal51") {
+#     seurat_objects[[i]] <- subset(seurat_objects[[i]], 
+#                                   subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & 
+#                                            nCount_RNA > 250 & nCount_RNA < 5000)
+#   } else if (animal_name == "Animal52") {
+#     seurat_objects[[i]] <- subset(seurat_objects[[i]], 
+#                                   subset = nFeature_RNA > 200 & nFeature_RNA < 2000 & 
+#                                            nCount_RNA > 250 & nCount_RNA < 7500)
+#   } else {
+#     # Default threshold for other animals (e.g., Animal25, Animal26)
+#     seurat_objects[[i]] <- subset(seurat_objects[[i]], 
+#                                   subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & 
+#                                            nCount_RNA > 500 & nCount_RNA < 10000)
+#   }
+  
+#   # Create separate violin plots for each feature, removing the legend
+#   p1 <- VlnPlot(seurat_objects[[i]], features = "nFeature_RNA", ncol = 1) +
+#         ggtitle("Gene counts QC") +
+#         theme(plot.title = element_text(hjust = 0.5),  # Center the title
+#               legend.position = "none")               # Remove legend
+  
+#   p2 <- VlnPlot(seurat_objects[[i]], features = "nCount_RNA", ncol = 1) +
+#         ggtitle("UMI counts QC") +
+#         theme(plot.title = element_text(hjust = 0.5),  # Center the title
+#               legend.position = "none")               # Remove legend
+  
+#   # Combine plots for this sample using patchwork
+#   combined_plot <- p1 + p2 + plot_layout(ncol = 2)
+  
+#   # Add an overall title for the combined plot
+#   combined_plot <- combined_plot + plot_annotation(title = paste("QC for", animal_name))
+  
+#   # Store the combined plot in the list
+#   combined_plots[[animal_name]] <- combined_plot
+  
+#   # Print status message for this sample
+#   cat("✅ Plot generated for", animal_name, "\n")
+# }
+
+# # Stack all plots vertically using cowplot
+# stacked_plot <- cowplot::plot_grid(plotlist = combined_plots, ncol = 1)
+
+# # Save the stacked plot as a single PNG
+# output_file <- "qc_violin_stacked.png"
+# ggsave(output_file, plot = stacked_plot, width = 10, height = 6 * length(seurat_objects), dpi = 600, units = "in")
+
+# # Print final message
+# cat("✅ All QC plots combined into", output_file, "\n")
+
+# # Normalize with SCTransform
+# seurat_objects <- lapply(seurat_objects, SCTransform, verbose = FALSE)
  
+# # Save the QC'd and normalized objects
+# saveRDS(seurat_objects, "seurat_objects_qc_sct.rds")
  
- 
-# step 2: quality control and pre-processing
- 
-# Load libraries
-library(Seurat)
-library(SeuratDisk)  # For H5 file import if needed later
-library(dplyr)
-library(ggplot2)
- 
+# # Final completion message
+# cat("QC and figure generation process is finished.\n")
+
+
+
+
+
+# 3. Batch correction and integration
 # Load the saved RDS file
-seurat_objects <- readRDS("seurat_objects_list.rds")
- 
-# Verify the loaded objects (optional)
-cat("Number of samples loaded:", length(seurat_objects), "\n")
-lapply(names(seurat_objects), function(name) {
-  cat("Sample:", name, " - Cells:", ncol(seurat_objects[[name]]), " Genes:", nrow(seurat_objects[[name]]), "\n")
-})
- 
-head(rownames(seurat_objects[[1]]), 20)
- 
-# Perform QC filtering and generate violin plots
-for (i in 1:length(seurat_objects)) {
-  # Define nCount_RNA threshold based on animal name
-  animal_name <- names(seurat_objects)[i]
-  nCount_threshold <- switch(animal_name,
-                             "Animal27" = "nCount_RNA > 500 & nCount_RNA < 7500",
-                             "Animal28" = "nCount_RNA > 500 & nCount_RNA < 10000",
-                             "Animal51" = "nCount_RNA > 500 & nCount_RNA < 5000",
-                             "Animal52" = "nCount_RNA > 500 & nCount_RNA < 7500",
-                             "nCount_RNA > 1000 & nCount_RNA < 10000" # Default threshold for other animals
-  )
-  
-  # Filter based on updated QC thresholds (nFeature_RNA remains constant)
-  seurat_objects[[i]] <- subset(seurat_objects[[i]], 
-                                subset = nFeature_RNA > 200 & nFeature_RNA < 3000 & 
-                                         eval(parse(text = nCount_threshold)))
-  
-  # Create and save violin plot
-  p <- VlnPlot(seurat_objects[[i]], 
-               features = c("nFeature_RNA", "nCount_RNA"), 
-               ncol = 3) +
-       ggtitle(paste("QC for", names(seurat_objects)[i]))
-  
-  file_name <- paste0("QC_violin_", names(seurat_objects)[i], ".png")
-  ggsave(file_name, plot = p, width = 10, height = 6, dpi = 600, units = "in")
-  cat("✅ Figure generation done for", names(seurat_objects)[i], "- Saved as", file_name, "\n")
-}
- 
-# Normalize with SCTransform
-seurat_objects <- lapply(seurat_objects, SCTransform, verbose = FALSE)
- 
-# Save the QC'd and normalized objects
-saveRDS(seurat_objects, "seurat_objects_qc_sct.rds")
- 
-# Final completion message
-cat("QC and figure generation process is finished.\n")
+seurat_objects <- readRDS("seurat_objects_qc_sct.rds")
+
+# Step 1: Run PCA on the first sample to determine dims
+seurat_objects[[1]] <- RunPCA(seurat_objects[[1]], verbose = FALSE)
+
+# Generate and customize the elbow plot
+elbow_plot <- ElbowPlot(seurat_objects[[1]], ndims = 50) +
+              ggtitle("Elbow Plot for PCA - Animal25") +  # Add a custom title
+              theme(plot.title = element_text(hjust = 0.5))  # Center the title
+
+# Save the plot
+ggsave("elbow_plot.png", plot = elbow_plot, width = 10, height = 6, dpi = 600, units = "in")
+
+# Optional: Display the plot
+# print(elbow_plot)
