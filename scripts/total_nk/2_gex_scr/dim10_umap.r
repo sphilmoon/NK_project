@@ -197,6 +197,7 @@ saveRDS(integrated_data15, file.path("integrated_data15.rds"))
 # Print final message
 cat("✅ File saved for 4. Clustering and visualizing the integration.")
 
+
 # Generate and customize the DimPlot
 dim_plot <- DimPlot(integrated_data15, group.by = "sample", label = TRUE, pt.size = 0.5) +
             ggtitle("UMAP - Integration by Sample") +
@@ -206,6 +207,31 @@ dim_plot <- DimPlot(integrated_data15, group.by = "sample", label = TRUE, pt.siz
 
 # Save the DimPlot as a PNG
 ggsave("15_dimplot_integration.png", plot = dim_plot, width = 15, height = 8, dpi = 600, units = "in")
+
+
+# Load your integrated Seurat object
+integrated_data15 <- readRDS("/home/outputs/totalNK_outputs/2_dge/integrated_data.rds")
+# Visualize one sample at a time
+samples <- unique(integrated_data15$sample)
+cat("🌟 Generating individual UMAP plots for each sample...", console = TRUE)
+
+for (sample in samples) {
+  sample_data <- subset(integrated_data15, subset = sample == !!sample)
+  dim_plot <- DimPlot(sample_data, 
+                      group.by = "sample", 
+                      label = FALSE, 
+                      pt.size = 0.5) +
+              ggtitle(paste("UMAP -", sample)) +
+              theme(plot.title = element_text(hjust = 0.5),
+                    legend.position = "none") +
+              scale_color_brewer(palette = "Set2")
+  
+  output_file <- file.path(paste0("umap_", sample, "_20dims.pdf"))
+  ggsave(output_file, plot = dim_plot, width = 15, height = 8, dpi = 600, units = "in")
+  cat(sprintf("📊 UMAP plot for %s saved to 2_dge/umap_%s_20dims.pdf 🎉", sample, sample), console = TRUE)
+}
+
+cat("🌟 All individual UMAP plots generated successfully!", console = TRUE)
 
 
 # 5. Clustering to Identify Cell Groups
