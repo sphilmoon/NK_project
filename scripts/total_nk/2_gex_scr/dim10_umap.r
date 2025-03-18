@@ -174,7 +174,7 @@ ggsave("10_elbow_plot.png", plot = elbow_plot, width = 10, height = 6, dpi = 600
 # print(elbow_plot)
 
 # Step 2: Determine the number of dimensions for integration
-dims_to_use <- 1:10  # Replace with your chosen dims
+dims_to_use <- 1:15  # Replace with your chosen dims
 
 # Step 3: Select integration features
 features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000)
@@ -183,79 +183,79 @@ features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 
 anchors <- FindIntegrationAnchors(object.list = seurat_objects, anchor.features = features, dims = dims_to_use)
 
 # Step 5: Integrate data
-integrated_data10 <- IntegrateData(anchorset = anchors, dims = dims_to_use)
+integrated_data15 <- IntegrateData(anchorset = anchors, dims = dims_to_use)
 
 # 4. Clustering and visualizing the integration
-DefaultAssay(integrated_data10) <- "integrated"
-integrated_data10 <- ScaleData(integrated_data10)
-integrated_data10 <- RunPCA(integrated_data10)
-integrated_data10 <- RunUMAP(integrated_data10, dims = dims_to_use)
+DefaultAssay(integrated_data15) <- "integrated"
+integrated_data15 <- ScaleData(integrated_data15)
+integrated_data15 <- RunPCA(integrated_data15)
+integrated_data15 <- RunUMAP(integrated_data15, dims = dims_to_use)
 
 # Save the integrated data object
-saveRDS(integrated_data10, file.path("integrated_data10.rds"))
+saveRDS(integrated_data15, file.path("integrated_data15.rds"))
 
 # Print final message
 cat("✅ File saved for 4. Clustering and visualizing the integration.")
 
 # Generate and customize the DimPlot
-dim_plot <- DimPlot(integrated_data10, group.by = "sample", label = TRUE, pt.size = 0.5) +
+dim_plot <- DimPlot(integrated_data15, group.by = "sample", label = TRUE, pt.size = 0.5) +
             ggtitle("UMAP - Integration by Sample") +
             theme(plot.title = element_text(hjust = 0.5),
                   legend.position = "right") +  # Adjust legend position (or "none" to remove)
             scale_color_brewer(palette = "Set2")  # Optional: Change color palette
 
 # Save the DimPlot as a PNG
-ggsave("10_dimplot_integration.png", plot = dim_plot, width = 10, height = 8, dpi = 600, units = "in")
+ggsave("15_dimplot_integration.png", plot = dim_plot, width = 15, height = 8, dpi = 600, units = "in")
 
 
 # 5. Clustering to Identify Cell Groups
 # Load your integrated Seurat object
-# integrated_data10 <- readRDS("integrated_data10.rds")
+# integrated_data15 <- readRDS("integrated_data15.rds")
 
 # Set default assay now that all six samples are integrated with batch correction
-DefaultAssay(integrated_data10) <- "integrated"
+DefaultAssay(integrated_data15) <- "integrated"
 
 # Now identifying clusters with the integrated data and then identify DEGs for each cluster
-integrated_data10 <- FindNeighbors(integrated_data10, dims = dims_to_use)
-integrated_data10 <- FindClusters(integrated_data10, resolution = 0.5)
+integrated_data15 <- FindNeighbors(integrated_data15, dims = dims_to_use)
+integrated_data15 <- FindClusters(integrated_data15, resolution = 0.5)
 
 # Visualize the clusters
-cluster_plot <- DimPlot(integrated_data10, label = TRUE, group.by = "seurat_clusters")
-ggsave("10_cluster_plot.png", plot = cluster_plot, width = 10, height = 8, dpi = 600, units = "in")
+cluster_plot <- DimPlot(integrated_data15, label = TRUE, group.by = "seurat_clusters")
+ggsave("15_cluster_plot.png", plot = cluster_plot, width = 15, height = 8, dpi = 600, units = "in")
 
 # Validate the integrated clusters with well-known Markers
-feature_plot <- FeaturePlot(integrated_data10, features = c("NCR1", "CD3E"), ncol = 2)
-ggsave("10_feature_plot_markers.png", plot = feature_plot, width = 12, height = 6, dpi = 600, units = "in")
+feature_plot <- FeaturePlot(integrated_data15, features = c("NCR15", "CD3E"), ncol = 2)
+ggsave("15_feature_plot_markers.png", plot = feature_plot, width = 152, height = 6, dpi = 600, units = "in")
 
 # Save the integrated data object with multiple clusters identified across six samples
-saveRDS(integrated_data10, "integrated_data10_clusters.rds")
-
+saveRDS(integrated_data15, "integrated_data15_clusters.rds")
+cat("✅ File saved for 5. Clustering to Identify Cell Groups.")
 
 
 # 6. DGE Analysis for finding commonly expressed genes per sample (not cluster) using PCA dim 30. 
 # Load the integrated data object with clusters
-integrated_data10 <- readRDS("integrated_data10_clusters.rds")
+integrated_data15 <- readRDS("integrated_data15_clusters.rds")
 # Switching to the RNA assay for DEG analysis
-DefaultAssay(integrated_data10) <- "RNA"
+DefaultAssay(integrated_data15) <- "RNA"
 
 # Join layers in the RNA assay
-integrated_data10 <- JoinLayers(integrated_data10, assay = "RNA")
+integrated_data15 <- JoinLayers(integrated_data15, assay = "RNA")
 # Normalize a log-normalization on the integrated data for DEG analysis
-integrated_data10 <- NormalizeData(integrated_data10, assay = "RNA")
+integrated_data15 <- NormalizeData(integrated_data15, assay = "RNA")
 
 # step a. Set sample as the identity for comparison
-Idents(integrated_data10) <- "sample"
+Idents(integrated_data15) <- "sample"
 
 # step b. Find DEGs across all samples by comparing each sample to the others
 # We'll store DEGs for each sample vs. others in a list
 sample_degs <- list()
 # Get unique sample names
-samples <- unique(integrated_data10@meta.data$sample)
+samples <- unique(integrated_data15@meta.data$sample)
 
 # Loop over each sample to find DEGs
 for (s in samples) {
-  degs <- FindMarkers(integrated_data10, 
-                      ident.1 = s,  # Sample of interest
+  degs <- FindMarkers(integrated_data15, 
+                      ident.15 = s,  # Sample of interest
                       ident.2 = NULL,  # Compare to all other samples
                       assay = "RNA",
                       min.pct = 0.25, 
@@ -269,73 +269,80 @@ for (s in samples) {
 # Combine all DEGs into a single data frame
 all_sample_degs <- do.call(rbind, sample_degs)
 
-# step c. Rank DEGs globally by adjusted p-value and log2FC
-# We'll select DEGs based on the smallest adjusted p-value and largest |log2FC|
-global_degs_df <- all_sample_degs %>%
-                  filter(p_val_adj < 0.05 & abs(avg_log2FC) > 0.5) %>%
-                  group_by(gene) %>%
-                  summarise(mean_log2FC = mean(abs(avg_log2FC)), 
-                            min_p_val_adj = min(p_val_adj))
 
-print(summary(global_degs_df$min_p_val_adj))
-print(table(global_degs_df$min_p_val_adj == 0))  # Check how many genes have p_val_adj = 0
 
-# Select exactly 20 genes using slice_head()
-global_degs_top20 <- global_degs_df %>%
-               arrange(min_p_val_adj, desc(mean_log2FC)) %>%  # Sort by p-value, then by log2FC
-               slice_head(n = 20) %>%  # Strictly take the top 20
-               pull(gene) %>%
-               unique()
-print(global_degs_top20)
 
-# Compute average expression of global_degs_top20 genes across samples
-avg_exp_top20 <- AverageExpression(integrated_data10, 
-                             assays = "RNA", 
-                             features = global_degs_top20, 
-                             group.by = "sample")$RNA                             
 
-# Select exactly 100 genes using slice_head()
-global_degs_top100 <- global_degs_df %>%
-               arrange(min_p_val_adj, desc(mean_log2FC)) %>%  # Sort by p-value, then by log2FC
-               slice_head(n = 100) %>%  # Strictly take the top 100
-               pull(gene) %>%
-               unique()
 
-# Compute average expression of global_degs_top100 across samples
-avg_exp_top100 <- AverageExpression(integrated_data10, 
-                             assays = "RNA", 
-                             features = global_degs_top100, 
-                             group.by = "sample")$RNA
-# Ensure the matrix is correctly formatted (genes as columns, samples as rows)
-write.csv(avg_exp_top100, "dim10_shared_degs_top100_avg_expression.csv")
-print(dim(avg_exp_top100))  # Should be 6 rows (samples) x 20 columns (genes)
+##### CHECK THE SCRIPT BELOW #####
 
-# step d. Visualize the global DEGs
-# Generate heatmap with a dark purple to light purple gradient
-heatmap_plot <- pheatmap(avg_exp_top20, 
-                         scale = "row", 
-                         cluster_rows = FALSE, 
-                         cluster_cols = FALSE, 
-                         show_rownames = TRUE, 
-                         show_colnames = TRUE, 
-                         color = colorRampPalette(c("#00a2fa", "#53008e"))(50), 
-                         main = "Heatmap of Top 20 Global DEGs Across Samples",
-                         fontsize = 10,
-                         border_color = "white")
+# # step c. Rank DEGs globally by adjusted p-value and log2FC
+# # We'll select DEGs based on the smallest adjusted p-value and largest |log2FC|
+# global_degs_df <- all_sample_degs %>%
+#                   filter(p_val_adj < 0.05 & abs(avg_log2FC) > 0.5) %>%
+#                   group_by(gene) %>%
+#                   summarise(mean_log2FC = mean(abs(avg_log2FC)), 
+#                             min_p_val_adj = min(p_val_adj))
 
-# Save the heatmap as a PNG
-png("10_heatmap_global_degs_top20.png", width = 14, height = 8, units = "in", res = 600)
-print(heatmap_plot)
-dev.off()
+# print(summary(global_degs_df$min_p_val_adj))
+# print(table(global_degs_df$min_p_val_adj == 0))  # Check how many genes have p_val_adj = 0
 
-# Generate dot plot with a custom color palette
-dot_plot <- DotPlot(integrated_data10, 
-                    features = global_degs_top20, 
-                    group.by = "sample", 
-                    assay = "RNA") +
-            ggtitle("Dot Plot of Top 20 Global DEGs Across Samples") +
-            theme(plot.title = element_text(hjust = 0.5),
-                  axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  # Tilt x-axis labels by 45 degrees
+# # Select exactly 20 genes using slice_head()
+# global_degs_top20 <- global_degs_df %>%
+#                arrange(min_p_val_adj, desc(mean_log2FC)) %>%  # Sort by p-value, then by log2FC
+#                slice_head(n = 20) %>%  # Strictly take the top 20
+#                pull(gene) %>%
+#                unique()
+# print(global_degs_top20)
 
-# Save the dot plot as a PNG
-ggsave("10_new_dotplot_global_degs_top20.png", plot = dot_plot, width = 14, height = 8, dpi = 600, units = "in")
+# # Compute average expression of global_degs_top20 genes across samples
+# avg_exp_top20 <- AverageExpression(integrated_data15, 
+#                              assays = "RNA", 
+#                              features = global_degs_top20, 
+#                              group.by = "sample")$RNA                             
+
+# # Select exactly 100 genes using slice_head()
+# global_degs_top100 <- global_degs_df %>%
+#                arrange(min_p_val_adj, desc(mean_log2FC)) %>%  # Sort by p-value, then by log2FC
+#                slice_head(n = 100) %>%  # Strictly take the top 100
+#                pull(gene) %>%
+#                unique()
+
+# # Compute average expression of global_degs_top100 across samples
+# avg_exp_top100 <- AverageExpression(integrated_data15, 
+#                              assays = "RNA", 
+#                              features = global_degs_top100, 
+#                              group.by = "sample")$RNA
+# # Ensure the matrix is correctly formatted (genes as columns, samples as rows)
+# write.csv(avg_exp_top100, "dim10_shared_degs_top100_avg_expression.csv")
+# print(dim(avg_exp_top100))  # Should be 6 rows (samples) x 20 columns (genes)
+
+# # step d. Visualize the global DEGs
+# # Generate heatmap with a dark purple to light purple gradient
+# heatmap_plot <- pheatmap(avg_exp_top20, 
+#                          scale = "row", 
+#                          cluster_rows = FALSE, 
+#                          cluster_cols = FALSE, 
+#                          show_rownames = TRUE, 
+#                          show_colnames = TRUE, 
+#                          color = colorRampPalette(c("#00a2fa", "#53008e"))(50), 
+#                          main = "Heatmap of Top 20 Global DEGs Across Samples",
+#                          fontsize = 10,
+#                          border_color = "white")
+
+# # Save the heatmap as a PNG
+# png("10_heatmap_global_degs_top20.png", width = 14, height = 8, units = "in", res = 600)
+# print(heatmap_plot)
+# dev.off()
+
+# # Generate dot plot with a custom color palette
+# dot_plot <- DotPlot(integrated_data15, 
+#                     features = global_degs_top20, 
+#                     group.by = "sample", 
+#                     assay = "RNA") +
+#             ggtitle("Dot Plot of Top 20 Global DEGs Across Samples") +
+#             theme(plot.title = element_text(hjust = 0.5),
+#                   axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  # Tilt x-axis labels by 45 degrees
+
+# # Save the dot plot as a PNG
+# ggsave("10_new_dotplot_global_degs_top20.png", plot = dot_plot, width = 14, height = 8, dpi = 600, units = "in")
