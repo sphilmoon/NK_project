@@ -173,7 +173,7 @@ ggsave("elbow_plot.png", plot = elbow_plot, width = 10, height = 6, dpi = 600, u
 # print(elbow_plot)
 
 # Step 2: Determine the number of dimensions for integration
-dims_to_use <- 1:20  # Replace with your chosen dims
+dims_to_use <- 1:10  # Replace with your chosen dims
 
 # Step 3: Select integration features
 features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000)
