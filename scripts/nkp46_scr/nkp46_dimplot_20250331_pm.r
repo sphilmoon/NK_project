@@ -86,5 +86,62 @@ for (i in 1:length(seurat_list)) {
 # Stack the plots in a single PDF
 stacked_elbow_plot <- cowplot::plot_grid(plotlist = combined_elbow_plots, ncol = 1)
 output_file <- "combined_elbow_plots.pdf"
-ggsave(output_file, plot = stacked_elbow_plot, limitsize = FALSE, dpi = 600, units = "in")
+ggsave(output_file, plot = stacked_elbow_plot, 
+       width = 10, height = 6 * length(seurat_list), dpi = 600, units = "in", 
+       limitsize = FALSE)
 cat("✅ Combined elbow plots saved to", output_file, "\n")
+
+
+
+# Step 4: Find Integration Anchors
+anchors <- FindIntegrationAnchors(object.list = seurat_list, anchor.features = features, 
+                                  reduction = "cca", dims = 1:20)
+# Step 5: Integrate the Data
+integrated_data <- IntegrateData(anchorset = anchors, dims = 1:20)
+
+# Step 6: Dimensionality Reduction and Clustering
+DefaultAssay(integrated_data) <- "integrated"
+integrated_data <- ScaleData(integrated_data)
+integrated_data <- RunPCA(integrated_data, npcs = 30)
+integrated_data <- RunUMAP(integrated_data, dims = 1:20)
+integrated_data <- FindNeighbors(integrated_data, dims = 1:20)
+integrated_data <- FindClusters(integrated_data, resolution = 0.5)
+
+# Save the integrated data object
+saveRDS(integrated_data, "nkp46_integrated_data.rds")
+
+# Step 7: Prepare for Dot Plots
+DefaultAssay(integrated_data) <- "RNA"
+integrated_data <- JoinLayers(integrated_data, assay = "RNA")
+
+# Step 8: Generate Dot Plots for NKp46+ and NKp46- Only
+markers <- c("NCR1", "CD3E", "KLRB1", "CD2")  # Marker genes to plot
+
+# Loop through each animal to create a dot plot
+for (animal in paste0("Animal", c("25", "26", "27", "28", "52"))) {
+  # Subset data for the current animal
+  animal_data <- subset(integrated_data, subset = animal == animal)
+  
+  # Define the plotting group as condition (NKp46+ and NKp46-)
+  animal_data$plot_group <- factor(animal_data$condition, levels = c("nkp46+", "nkp46-"))
+  
+  # Generate the dot plot
+  dot_plot <- DotPlot(animal_data, features = markers, 
+                      group.by = "plot_group", 
+                      dot.scale = 8, 
+                      cols = c("lightblue", "darkblue")) +
+    ggtitle(paste(animal, "Marker Expression in nkp46+, nkp46-")) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Save the plot
+  ggsave(filename = paste0("dotplot_", animal, "_markers.pdf"), 
+         plot = dot_plot, width = 8, height = 6, dpi = 600)
+}
+
+# Optional: Combined plot for all animals
+dot_plot_all <- DotPlot(integrated_data, features = markers, 
+                        group.by = "condition", split.by = "animal",
+                        dot.scale = 8, cols = c("lightblue", "darkblue")) +
+  ggtitle("Marker Expression Across Animals (nkp46+, nkp46-)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave("dotplot_all_animals.pdf", width = 12, height = 8, dpi = 600)
