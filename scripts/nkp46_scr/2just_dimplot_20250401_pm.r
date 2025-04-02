@@ -33,14 +33,16 @@ integrated_data <- subset(integrated_data, subset = animal %in% animals)
 cat("🌟 Subset data to include only Animals 25, 26, 27, 28, 52.\n")
 
 # Create a combined group for plotting (animal_condition)
-# Switch animal and condition to have condition on the x-axis
-all_combinations <- expand.grid(condition = c("nkp46+", "nkp46-"), animal = animals)
-all_levels <- apply(all_combinations, 1, paste, collapse = "_")
-
-# Generate the animal_condition factor with all combinations as levels
+# Format: condition_animal (for proper x-axis and y-axis arrangement)
 integrated_data$animal_condition <- factor(
   paste(integrated_data$condition, integrated_data$animal, sep = "_"),
-  levels = all_levels
+  levels = c(
+    "nkp46+_Animal25", "nkp46-_Animal25",
+    "nkp46+_Animal26", "nkp46-_Animal26",
+    "nkp46+_Animal27", "nkp46-_Animal27",
+    "nkp46+_Animal28", "nkp46-_Animal28",
+    "nkp46+_Animal52", "nkp46-_Animal52"
+  )
 )
 
 # Step 8: Generate Dot Plots (One Marker per Figure)
@@ -54,8 +56,8 @@ for (marker in markers) {
               ggtitle(paste("Expression of", marker, "in NKp46+ and NKp46- Across Animals")) +
               theme(plot.title = element_text(hjust = 0.5),
                     axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-                    axis.title.x = element_blank()) +
-              coord_flip()  # Flip for better readability (condition on x-axis)
+                    axis.title.x = element_blank()) + 
+              coord_flip()  # Keeps y-axis as animals and x-axis as conditions
   
   # Save the plot
   output_file <- file.path(dge_output_dir, paste0("dotplot_", marker, "_nkp46_all_animals.pdf"))
