@@ -114,10 +114,16 @@ integrated_data <- FindClusters(integrated_data, resolution = 0.5)
 
 # Save the integrated data object
 saveRDS(integrated_data, file.path(dge_output_dir, "nkp46_integrated_data.rds"))
+cat("💾 Integrated data saved to", file.path(dge_output_dir, "nkp46_integrated_data.rds"), "\n")
+
+
+# Load your integrated Seurat object
+integrated_data <- readRDS("nkp46_integrated_data.rds")
 
 # Step 7: Prepare for Dot Plots
 DefaultAssay(integrated_data) <- "RNA"
 integrated_data <- JoinLayers(integrated_data, assay = "RNA")
+
 
 # Define animals and markers
 animals <- paste0("Animal", c("25", "26", "27", "28", "52"))
@@ -156,5 +162,5 @@ for (marker in markers) {
   # Save the plot
   output_file <- file.path(dge_output_dir, paste0("dotplot_", marker, "_nkp46_all_animals.pdf"))
   ggsave(filename = output_file, plot = dot_plot, width = 10, height = 8, dpi = 600)
-  cat(sprintf("📊 Dot plot for %s saved to %s 🎉\n", marker, output_file))
+  cat(sprintf("🌟 Dot plot for %s saved to %s \n", marker, output_file))
 }
