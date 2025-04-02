@@ -34,6 +34,7 @@ if (!"condition" %in% colnames(integrated_data@meta.data)) {
 integrated_data <- subset(integrated_data, subset = animal %in% animals)
 cat("🌟 Subset data to include only Animals 25, 26, 27, 28, 52.\n")
 
+
 # Create a combined group for plotting (animal_condition)
 integrated_data$animal_condition <- factor(
   paste(integrated_data$animal, integrated_data$condition, sep = "_"),
@@ -47,9 +48,9 @@ for (marker in markers) {
     integrated_data,
     features = marker,
     group.by = "animal_condition",  # Combined animal and condition
-    dot.scale = 8
+    dot.scale = 8,
+    cols = c("lightgrey", "red")
   ) +
-    scale_color_gradient(low = "lightgrey", high = "red") +
     ggtitle(paste("Expression of", marker, "in NKp46+ and NKp46- Across Animals")) +
     theme(
       plot.title = element_text(hjust = 0.5),
@@ -63,6 +64,6 @@ for (marker in markers) {
 
   # Save the plot
   output_file <- file.path(dge_output_dir, paste0("dotplot_", marker, "_nkp46_all_animals.pdf"))
-  ggsave(filename = output_file, plot = dot_plot, width = 12, height = 8, dpi = 600)
+  ggsave(filename = output_file, plot = dot_plot, width = 12, height = 10, dpi = 600)
   cat(sprintf("📊 Dot plot for %s saved to %s \n", marker, output_file))
 }
