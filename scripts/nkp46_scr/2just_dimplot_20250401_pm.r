@@ -34,17 +34,22 @@ if (!"condition" %in% colnames(integrated_data@meta.data)) {
 integrated_data <- subset(integrated_data, subset = animal %in% animals)
 cat("🌟 Subset data to include only Animals 25, 26, 27, 28, 52.\n")
 
+# Create a combined group for plotting (animal_condition)
+integrated_data$animal_condition <- factor(
+  paste(integrated_data$animal, integrated_data$condition, sep = "_"),
+  levels = paste(rep(animals, each = 2), c("nkp46+", "nkp46-"), sep = "_")
+)
+
 # Step 8: Generate Dot Plots (One Marker per Figure)
 cat("🌟 Generating dot plots for NKp46+ and NKp46- across all animals...\n")
 for (marker in markers) {
   dot_plot <- DotPlot(
     integrated_data,
     features = marker,
-    group.by = "animal",  # Y-axis: Animals
-    split.by = "condition",  # X-axis: Conditions (NKp46+, NKp46-)
-    dot.scale = 8,
-    cols = c("lightblue", "darkblue")
+    group.by = "animal_condition",  # Combined animal and condition
+    dot.scale = 8
   ) +
+    scale_color_gradient(low = "lightgrey", high = "red") +
     ggtitle(paste("Expression of", marker, "in NKp46+ and NKp46- Across Animals")) +
     theme(
       plot.title = element_text(hjust = 0.5),
@@ -53,11 +58,11 @@ for (marker in markers) {
       axis.title.x = element_text(size = 12, margin = margin(t = 10)),
       axis.title.y = element_text(size = 12, margin = margin(r = 10))
     ) +
-    xlab("Condition") +
-    ylab("Animal")
+    xlab("Animal_Condition") +
+    ylab("")
 
   # Save the plot
   output_file <- file.path(dge_output_dir, paste0("dotplot_", marker, "_nkp46_all_animals.pdf"))
-  ggsave(filename = output_file, plot = dot_plot, width = 10, height = 8, dpi = 600)
+  ggsave(filename = output_file, plot = dot_plot, width = 12, height = 8, dpi = 600)
   cat(sprintf("📊 Dot plot for %s saved to %s \n", marker, output_file))
 }
