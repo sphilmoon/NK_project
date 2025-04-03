@@ -57,7 +57,7 @@ for (marker in markers) {
     )
   
   # Create the dot plot using ggplot2
-  dot_plot <- ggplot(summary_data, aes(x = condition, y = animal, size = percent_expressed, color = avg_expression)) +
+  dot_plot <- ggplot(summary_data, aes(x = animal, y = condition, size = percent_expressed, color = avg_expression)) +
     geom_point() +
     scale_size_continuous(range = c(2, 8), breaks = c(20, 40, 60)) +
     scale_color_gradient(low = "lightgrey", high = "red") +
@@ -71,8 +71,8 @@ for (marker in markers) {
       axis.title.y = element_text(size = 12, margin = margin(r = 10)),
       legend.position = "right"
     ) +
-    xlab("Condition") +
-    ylab("Animal")
+    xlab("Animal") +
+    ylab("Condition")
   
   # Save the plot
   output_file <- file.path(dge_output_dir, paste0("dotplot_", marker, "_nkp46_all_animals.pdf"))
