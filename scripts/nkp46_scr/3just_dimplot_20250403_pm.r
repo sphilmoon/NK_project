@@ -1,18 +1,21 @@
 # Load libraries
 library(Seurat)
+library(hdf5r)
+library(dplyr)
 library(ggplot2)
+library(cowplot)
 
-# Define output directory
+# Define directories
+data_dir <- "/home/rawdata/nkp46_pos_neg/"
 dge_output_dir <- "/home/outputs/nkp46_outputs"
 
-# Load the integrated Seurat object
-integrated_data_file <- file.path(dge_output_dir, "nkp46_integrated_data.rds")
-if (!file.exists(integrated_data_file)) {
-  stop("Integrated data file not found: ", integrated_data_file)
-}
-integrated_data <- readRDS(integrated_data_file)
+# Create output directory if it doesn't exist
+dir.create(dge_output_dir, recursive = TRUE, showWarnings = FALSE)
 
-# Prepare for Dot Plots
+# Load your integrated Seurat object
+integrated_data <- readRDS(file.path(dge_output_dir, "nkp46_integrated_data.rds"))
+
+# Step 7: Prepare for Dot Plots
 DefaultAssay(integrated_data) <- "RNA"
 integrated_data <- JoinLayers(integrated_data, assay = "RNA")
 
@@ -41,55 +44,80 @@ nk_mice_markers <- c("IL2RB", "CD244", "NKG2D", "KLRB1", "NKG2A/C", "NCR1", "LY4
 canonical_nk_markers <- c("NCR1", "CD2", "CD16", "GZMA", "PRF1", "KLRK1")
 canonical_non_nk_markers <- c("CD40", "CD3a", "CD3b", "CD4", "CD8a", "CD14", "CD68", "A4GALT", "CD9", "CD1", "FCGR2A", "CD163L1")
 
-# Check and define NKp46 condition if not present
-if (!"condition" %in% colnames(integrated_data@meta.data)) {
-  if ("NCR1" %in% rownames(integrated_data)) {
-    ncr1_exp <- GetAssayData(integrated_data, assay = "RNA", slot = "data")["NCR1", ]
-    integrated_data$condition <- ifelse(ncr1_exp > median(ncr1_exp, na.rm = TRUE), "nkp46+", "nkp46-")
-    cat("🔧 Defined NKp46+/- conditions based on NCR1 expression median.\n")
-  } else {
-    stop("NCR1 not found in the dataset; cannot define NKp46+/- conditions.")
+# Combine all markers into a single vector
+all_markers <- c(
+  chemotaxis_markers,
+  inhibiting_receptors_markers,
+  activating_receptors_markers,
+  cytokine_receptors_markers,
+  activation_markers,
+  maturation_markers,
+  nk1_markers,
+  nk2_markers,
+  nk3_markers,
+  adaptive_nk_markers,
+  immature_nk_markers,
+  transitional_nk_markers,
+  mature_nk_markers,
+  terminally_mature_nk_markers,
+  active_nk_markers,
+  inhibiting_receptors_mice_markers,
+  activating_receptors_mice_markers,
+  immature_nk_mice_markers,
+  mature_nk_mice_markers,
+  nk_mice_markers,
+  canonical_nk_markers,
+  canonical_non_nk_markers
+)
+
+# Step 8: Generate Custom Dot Plots (One Marker per Figure)
+cat("🌟 Generating custom dot plots for NKp46+ and NKp46- across all animals...\n")
+for (marker in all_markers) {
+  # Extract expression data
+  expr_data <- GetAssayData(integrated_data, assay = "RNA", slot = "data")[marker, , drop = FALSE]
+  
+  # Check if the marker exists in the data
+  if (nrow(expr_data) == 0) {
+    cat(sprintf("⚠️ Marker %s not found in the data, skipping...\n", marker))
+    next
   }
-}
-
-# Ensure only desired animals are included
-integrated_data <- subset(integrated_data, subset = animal %in% animals)
-cat("🌟 Subset data to include only Animals 25, 26, 27, 28, 52.\n")
-
-# Check available genes and filter markers
-available_genes <- rownames(integrated_data)
-nk1_markers <- nk1_markers[nk1_markers %in% available_genes]
-if (length(nk1_markers) == 0) {
-  stop("No markers from nk1_markers found in the dataset.")
-} else if (length(nk1_markers) < length(c("PLAC8", "CD38", "CCL4", "CHST2", "FCER1G", "IGFBP7", "AKR1C3", "SPON2"))) {
-  cat("⚠️ Some markers from nk1_markers not found: ", setdiff(c("PLAC8", "CD38", "CCL4", "CHST2", "FCER1G", "IGFBP7", "AKR1C3", "SPON2"), nk1_markers), "\n")
-}
-
-DotPlot(integrated_data, features = nk1_markers[1], group.by = "condition", split.by = "animal", dot.scale = 8, scale = TRUE, cols = c("grey", "grey", "grey", "grey", "grey")) + scale_colour_gradientn(colours = c("lightblue", "blue", "darkblue", "purple", "black", "orange", "red"))
-
-# Generate Dot Plots (One Marker per Figure)
-cat("🌟 Generating dot plots for NKp46+ and NKp46- across all animals...\n")
-for (marker in nk1_markers) {
-  dot_plot <- DotPlot(integrated_data, 
-                      features = marker, 
-                      group.by = "condition",  # X-axis: NKp46+, NKp46-
-                      split.by = "animal",     # Y-axis: Animal25, Animal26, etc.
-                      dot.scale = 8,
-                      scale = TRUE,
-                      cols = c("lightgrey", "red")) + 
-              scale_colour_gradientn(colours = c("lightblue", "blue", "darkblue", "purple", "black", "orange", "red"), 
-                                     guide = "colourbar") +  # Color for expression
-              ggtitle(paste("Expression of", marker, "in NKp46+ and NKp46- Across Animals")) +
-              theme(plot.title = element_text(hjust = 0.5),
-                    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-                    axis.text.y = element_text(size = 10),
-                    axis.title.x = element_text(size = 12),
-                    axis.title.y = element_text(size = 12)) +
-              xlab("Condition") +
-              ylab("Animal")
+  
+  # Create a data frame with metadata
+  plot_data <- data.frame(
+    animal = integrated_data$animal,
+    condition = integrated_data$condition,
+    expression = as.vector(expr_data[marker, ])
+  )
+  
+  # Calculate average expression and percent expressed per group
+  summary_data <- plot_data %>%
+    group_by(animal, condition) %>%
+    summarise(
+      avg_expression = mean(expression, na.rm = TRUE),
+      percent_expressed = mean(expression > 0, na.rm = TRUE) * 100,
+      .groups = "drop"
+    )
+  
+  # Create the dot plot using ggplot2
+  dot_plot <- ggplot(summary_data, aes(x = condition, y = animal, size = percent_expressed, color = avg_expression)) +
+    geom_point() +
+    scale_size_continuous(range = c(2, 8), breaks = c(20, 40, 60)) +
+    scale_color_gradient(low = "lightgrey", high = "red") +
+    ggtitle(paste("Expression of", marker, "in NKp46+ and NKp46- Across Animals")) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+      axis.text.y = element_text(size = 10),
+      axis.title.x = element_text(size = 12, margin = margin(t = 10)),
+      axis.title.y = element_text(size = 12, margin = margin(r = 10)),
+      legend.position = "right"
+    ) +
+    xlab("Condition") +
+    ylab("Animal")
   
   # Save the plot
   output_file <- file.path(dge_output_dir, paste0("dotplot_", marker, "_nkp46_all_animals.pdf"))
-  ggsave(filename = output_file, plot = dot_plot, width = 8, height = 6, dpi = 600)
-  cat(sprintf("📊 Dot plot for %s saved to %s\n", marker, output_file))
+  ggsave(filename = output_file, plot = dot_plot, width = 8, height = 10, dpi = 600)
+  cat(sprintf("📊 Dot plot for %s saved to %s \n", marker, output_file))
 }
