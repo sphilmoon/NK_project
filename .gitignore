@@ -2,3 +2,4 @@
 rawdata/nkp46_pos_neg/
 *.err
 *.out
+outputs/nkp46_outputs/dotplot_pdf
