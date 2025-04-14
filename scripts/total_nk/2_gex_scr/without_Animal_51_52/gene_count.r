@@ -133,9 +133,9 @@ for (dim_name in names(integrated_data_list)) {
                               pt.size = 0.3) +
                       ggtitle(paste("UMAP - Batch Correction (", dim_name, ", Res ", res, ")", sep = "")) +
                       theme(plot.title = element_text(hjust = 0.5),
-                            legend.position = "right") +
-                      scale_color_brewer(palette = "Pastel1")
+                            legend.position = "right") + scale_color_brewer(palette = "Set2")
 
+    # Generate UMAP plot by cluster
     umap_by_cluster <- DimPlot(integrated_data,
                                group.by = "seurat_clusters",
                                label = TRUE,
@@ -145,7 +145,7 @@ for (dim_name in names(integrated_data_list)) {
                        ggtitle(paste("UMAP - Clustering (", dim_name, ", Res ", res, ")", sep = "")) +
                        theme(plot.title = element_text(hjust = 0.5),
                              legend.position = "right") +
-                       scale_color_brewer(palette = "Pastel2")
+                       scale_color_viridis_d(option = "mako")
 
     combined_umap_plot <- umap_by_sample + umap_by_cluster + plot_layout(ncol = 2)
 
