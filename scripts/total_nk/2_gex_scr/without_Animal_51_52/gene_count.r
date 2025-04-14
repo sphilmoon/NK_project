@@ -145,7 +145,7 @@ for (dim_name in names(integrated_data_list)) {
                        ggtitle(paste("UMAP - Clustering (", dim_name, ", Res ", res, ")", sep = "")) +
                        theme(plot.title = element_text(hjust = 0.5),
                              legend.position = "right") +
-                       scale_color_viridis_d(option = "rocket")
+                       scale_color_viridis_d(option = "viridis", direction = -1)
 
     combined_umap_plot <- umap_by_sample + umap_by_cluster + plot_layout(ncol = 2)
 
