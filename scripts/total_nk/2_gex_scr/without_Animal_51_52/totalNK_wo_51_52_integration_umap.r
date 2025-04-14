@@ -151,8 +151,8 @@ for (dim in dims_list) {
   integrated_data_list[[dim_name]] <- integrated_data
   
   # Save the integrated object
-#   saveRDS(integrated_data, file.path(output_dir, paste0("integrated_data_wo_51_52_", dim_name, ".rds")))
-#   cat("✅ Integrated data for", dim_name, "saved to", file.path(output_dir, paste0("integrated_data_wo_51_52_", dim_name, ".rds")), "\n")
+  saveRDS(integrated_data, file.path(output_dir, paste0("integrated_data_wo_51_52_", dim_name, ".rds")))
+  cat("✅ Integrated data for", dim_name, "saved to", file.path(output_dir, paste0("integrated_data_wo_51_52_", dim_name, ".rds")), "\n")
 }
 
 # 4. UMAP and Visualization
