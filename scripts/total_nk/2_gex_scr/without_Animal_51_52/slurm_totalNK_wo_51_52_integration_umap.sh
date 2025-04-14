@@ -18,7 +18,7 @@ module load docker
 # Define paths
 HOST_DATA_DIR="/mnt/lustre/RDS-live/moon/ephemeral/NK_project"
 CONTAINER_DATA_DIR="/home"
-R_SCRIPT="/scripts/total_nk/2_gex_scr/without_Animal_51_52/visualize_dims_umap_wo_51_52.r"
+R_SCRIPT="scripts/total_nk/2_gex_scr/without_Animal_51_52/gene_count.r"
 
 # Run the Docker container with the R script and remove the container after execution
 docker run --rm \
