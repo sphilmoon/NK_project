@@ -193,4 +193,14 @@ for (dim_name in names(integrated_data_list)) {
   }
 }
 
+# Combine all objects (if needed)
+combined_obj <- merge(integrated_data_list[[1]], y = integrated_data_list[-1])
+
+# Count cells per animal
+animal_counts <- as.data.frame(table(combined_obj$sample))
+colnames(animal_counts) <- c("Animal", "CellCount")
+write.csv(animal_counts, file.path(output_dir, "cell_counts_per_animal.csv"), row.names = FALSE)
+
+cat("✅ Cell counts per animal saved to", animal_count_csv, "\n")
+
 cat("🎉 All visualizations and analyses complete. Outputs saved in:\n", output_dir, "\n")
