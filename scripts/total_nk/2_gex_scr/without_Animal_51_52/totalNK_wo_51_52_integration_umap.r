@@ -121,7 +121,14 @@ cat("✅ SCTransform normalized objects saved to", file.path(output_dir, "seurat
 features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000)
 
 # Define the dimensions to test
-dims_list <- c(10, 15, 25)
+dims_list <- c(20, 25)
+dim_names <- paste0("dims", dims_list)
+
+# Define the resolutions for each dimensionality
+resolution_configs <- list(
+  "dims20" = 0.4,   # Resolutions for dims20
+  "dims25" = 0.3    # Resolutions for dims25
+)
 
 # Create a named list to store integrated objects
 integrated_data_list <- list()
