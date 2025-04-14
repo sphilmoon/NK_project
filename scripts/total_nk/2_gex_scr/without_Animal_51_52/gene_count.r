@@ -133,7 +133,7 @@ for (dim_name in names(integrated_data_list)) {
                               pt.size = 0.25) +
                       ggtitle(paste("UMAP - Batch Correction (", dim_name, ", Res ", res, ")", sep = "")) +
                       theme(plot.title = element_text(hjust = 0.5),
-                            legend.position = "right") + scale_color_brewer(palette = "Set3")
+                            legend.position = "right") + scale_color_brewer(palette = "Set2")
 
     # Generate UMAP plot by cluster
     umap_by_cluster <- DimPlot(integrated_data,
@@ -148,6 +148,24 @@ for (dim_name in names(integrated_data_list)) {
                        scale_color_viridis_d(option = "viridis", direction = -1)
 
     combined_umap_plot <- umap_by_sample + umap_by_cluster + plot_layout(ncol = 2)
+
+    # UMAP split by sample (faceted view)
+    umap_by_sample2 <- DimPlot(integrated_data,
+                            group.by = "sample",       # color by sample (optional)
+                            split.by = "sample",       # facet by sample
+                            label = FALSE,
+                            pt.size = 0.25,
+                            ncol = 2) +                # adjust columns in the facet layout
+                        ggtitle(paste("UMAP - Batch Correction (", dim_name, ", Res ", res, ")", sep = "")) +
+                        theme(plot.title = element_text(hjust = 0.5),
+                                legend.position = "right") +
+                        scale_color_brewer(palette = "Set2")
+
+    # Save to PDF
+    umap_file2 <- file.path(output_dir, paste0("split_by_sample_", dim_name, "_res", res, ".pdf"))
+    ggsave(umap_file2, plot = umap_by_sample2,
+        width = 16, height = 10, dpi = 600, units = "in")  # adjusted size for multiple facets
+    cat("✅ UMAP split-by-sample saved to", umap_file2, "\n")
 
     # Save UMAP PDF
     umap_file <- file.path(output_dir, paste0("final_umap_", dim_name, "_res", res, ".pdf"))
