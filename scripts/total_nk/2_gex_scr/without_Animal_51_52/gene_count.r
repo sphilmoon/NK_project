@@ -145,7 +145,7 @@ for (dim_name in names(integrated_data_list)) {
                        ggtitle(paste("UMAP - Clustering (", dim_name, ", Res ", res, ")", sep = "")) +
                        theme(plot.title = element_text(hjust = 0.5),
                              legend.position = "right") +
-                       scale_color_viridis_d(option = "mako")
+                       scale_color_viridis_d(option = "rocket")
 
     combined_umap_plot <- umap_by_sample + umap_by_cluster + plot_layout(ncol = 2)
 
@@ -156,22 +156,22 @@ for (dim_name in names(integrated_data_list)) {
     cat("✅ UMAP plot saved to", umap_file, "\n")
 
     # Gene-by-cluster expression matrix
-    gene_cluster_csv <- file.path(output_dir, paste0("gene_counts_", dim_name, "_res", res, ".csv"))
-    gene_cluster_counts <- compute_gene_cluster_matrix(
-      seurat_obj = integrated_data,
-      assay_priority = "SCT",
-      threshold = 0,
-      output_path = gene_cluster_csv
-    )
+    # gene_cluster_csv <- file.path(output_dir, paste0("gene_counts_", dim_name, "_res", res, ".csv"))
+    # gene_cluster_counts <- compute_gene_cluster_matrix(
+    #   seurat_obj = integrated_data,
+    #   assay_priority = "SCT",
+    #   threshold = 0,
+    #   output_path = gene_cluster_csv
+    # )
 
-    # Cluster cell counts
-    cluster_counts <- as.data.frame(table(Idents(integrated_data)))
-    colnames(cluster_counts) <- c("Cluster", "CellCount")
-    cluster_csv <- file.path(output_dir, paste0("cluster_cell_counts_", dim_name, "_res", res, ".csv"))
-    write.csv(cluster_counts, cluster_csv, row.names = FALSE)
-    cat("✅ Cluster cell counts saved to", cluster_csv, "\n")
+    # # Cluster cell counts
+    # cluster_counts <- as.data.frame(table(Idents(integrated_data)))
+    # colnames(cluster_counts) <- c("Cluster", "CellCount")
+    # cluster_csv <- file.path(output_dir, paste0("cluster_cell_counts_", dim_name, "_res", res, ".csv"))
+    # write.csv(cluster_counts, cluster_csv, row.names = FALSE)
+    # cat("✅ Cluster cell counts saved to", cluster_csv, "\n")
 
-    cat("✅ Completed processing for", dim_name, "at resolution", res, "\n\n")
+    # cat("✅ Completed processing for", dim_name, "at resolution", res, "\n\n")
   }
 }
 
