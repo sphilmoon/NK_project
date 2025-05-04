@@ -54,6 +54,7 @@ cat("🎨 Creating DotPlot for", gene, "expression across clusters...\n")
 
 dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
   theme_minimal() +
+  scale_y_discrete(expand = c(0, 0)) +
   ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
   coord_flip() +  # <--- FLIPS axes: now clusters are x-axis, gene is y-axis
   theme(
