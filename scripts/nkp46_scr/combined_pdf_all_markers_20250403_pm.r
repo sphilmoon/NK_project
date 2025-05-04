@@ -70,6 +70,57 @@ marker_groups <- list(
   canonical_non_nk = canonical_non_nk_markers
 )
 
+
+# Get available gene names from the dataset using GetAssayData
+available_genes <- rownames(GetAssayData(integrated_data, assay = "RNA", slot = "data"))
+
+# Extract and save expression summary for all markers
+all_summary_data <- data.frame()
+
+for (group_name in names(marker_groups)) {
+  markers <- marker_groups[[group_name]]
+  for (marker in markers) {
+    # Check if the marker exists in the data before extracting
+    if (!(marker %in% rownames(integrated_data[["RNA"]]))) {
+      cat(sprintf("⚠️ Marker %s not found in the data, skipping...\n", marker))
+      next
+    }
+    
+    # Extract expression data using the 'layer' argument
+    expr_data <- GetAssayData(integrated_data, assay = "RNA", layer = "data")[marker, , drop = FALSE]
+    
+    # Create a data frame with metadata
+    plot_data <- data.frame(
+      animal = integrated_data$animal,
+      condition = integrated_data$condition,
+      expression = as.vector(expr_data[marker, ])
+    )
+    
+    # Calculate average expression and percent expressed per group
+    summary_data <- plot_data %>%
+      group_by(animal, condition) %>%
+      summarise(
+        avg_expression = mean(expression, na.rm = TRUE),
+        percent_expressed = mean(expression > 0, na.rm = TRUE) * 100,
+        .groups = "drop"
+      ) %>%
+      mutate(marker = marker, group = group_name)
+    
+    # Add to all summary data
+    all_summary_data <- rbind(all_summary_data, summary_data)
+  }
+}
+
+# Save the summary data to a CSV file
+write.csv(all_summary_data, file.path(dge_output_dir, "expression_summary_all_markers.csv"), row.names = FALSE)
+cat("📊 Expression summary for all markers saved to expression_summary_all_markers.csv\n")
+
+# Print summary for KLRB1 specifically
+klrb1_summary <- all_summary_data %>% filter(marker == "KLRB1")
+cat("📋 Summary for KLRB1:\n")
+print(klrb1_summary)
+
+
 # Step 8: Generate Custom Dot Plots
 cat("🌟 Generating custom dot plots for NKp46+ and NKp46- across all animals...\n")
 
