@@ -52,33 +52,21 @@ cat("✅ Gene", gene, "found in the Seurat object\n")
 # ------------------------- #
 cat("🎨 Creating DotPlot for", gene, "expression across clusters...\n")
 
-dot_plot <- DotPlot(
-  seurat_obj,
-  features = gene,
-  cols = c("white", "red"),  # Color gradient: white (low/zero) to red (high)
-  dot.scale = 8  # Adjust dot size scaling
-) +
+dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
   theme_minimal() +
-  scale_y_discrete(labels = gene) +  # Ensure y-axis shows the gene name
-  ggtitle("NCR1 Expression Per Cluster (dims25, res 0.3)") +
+  ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
+  coord_flip() +  # <--- FLIPS axes: now clusters are x-axis, gene is y-axis
   theme(
     plot.title = element_text(hjust = 0.5, size = 14),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
     axis.text.y = element_text(size = 10),
     axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    legend.position = "right",
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()
+    axis.title.y = element_blank()
   )
 
 # ------------------------- #
 # Save Plot
 # ------------------------- #
-output_file <- file.path(output_dir, "DotPlot_NCR1_perCluster_d25_res0.3.pdf")
-ggsave(filename = output_file, plot = dot_plot, width = 8, height = 4, dpi = 600, bg = "transparent")
+output_file <- file.path(output_dir, paste0("DotPlot_", gene, "_clusters.pdf"))
+ggsave(filename = output_file, plot = dot_plot, width = 8, height = 6, dpi = 600)
 cat("✅ DotPlot saved to", output_file, "\n")
-
-cat("🎉 Plot generation complete. Outputs saved in:\n", output_dir, "\n")
