@@ -27,17 +27,21 @@ if (is.null(integrated_data)) stop("❌ Failed to load Seurat object from ", rds
 cat("✅ Loaded Seurat object from", rds_path, "\n")
 
 # ------------------------- #
-# Prepare Data
+# Preprocessing
 # ------------------------- #
 DefaultAssay(integrated_data) <- "RNA"
 
-# If JoinLayers throws error, skip it
+# Join layers if not already joined
 if ("counts" %in% names(integrated_data@assays$RNA@layers)) {
   integrated_data <- JoinLayers(integrated_data, assay = "RNA")
   cat("✅ Layers joined in RNA assay\n")
 }
 
-cat("✅ Default assay set to RNA\n")
+# Remove Animal52 from metadata and object
+if ("animal" %in% colnames(integrated_data@meta.data)) {
+  integrated_data <- subset(integrated_data, subset = animal != "Animal52")
+  cat("✅ Removed Animal52 from dataset\n")
+}
 
 # ------------------------- #
 # Define Marker Groups
@@ -120,12 +124,16 @@ for (group_name in names(marker_groups)) {
   n_rows <- ceiling(n_markers / 3)
   plot_height <- max(6, n_rows * 2)
 
+  # Custom color scale: 0 = white, >0 = gradient
+  combined_summary_data$expression_bin <- ifelse(combined_summary_data$avg_expression == 0, "zero", "nonzero")
+
   if ("animal" %in% colnames(combined_summary_data)) {
-    combined_plot <- ggplot(combined_summary_data, aes(x = animal, y = condition, size = percent_expressed, color = avg_expression)) +
-      geom_point() +
+    combined_plot <- ggplot(combined_summary_data, aes(x = animal, y = condition, size = percent_expressed)) +
+      geom_point(aes(color = avg_expression)) +
       facet_wrap(~ marker, ncol = 3, scales = "free") +
       scale_size_continuous(range = c(2, 8), breaks = c(20, 40, 60), name = "Percent Expressed") +
-      scale_color_gradient(low = "lightgrey", high = "red", name = "Average Expression") +
+      scale_color_gradientn(colors = c("white", "lightgray", "red"), values = scales::rescale(c(0, 0.001, max(combined_summary_data$avg_expression, na.rm = TRUE))),
+                            name = "Average Expression") +
       ggtitle(paste("Expression of", group_name, "Markers in NKp46+ and NKp46-")) +
       theme_minimal() +
       theme(
@@ -138,11 +146,12 @@ for (group_name in names(marker_groups)) {
       xlab("Animal") +
       ylab("Condition")
   } else {
-    combined_plot <- ggplot(combined_summary_data, aes(x = group, y = 1, size = percent_expressed, color = avg_expression)) +
-      geom_point() +
+    combined_plot <- ggplot(combined_summary_data, aes(x = group, y = 1, size = percent_expressed)) +
+      geom_point(aes(color = avg_expression)) +
       facet_wrap(~ marker, ncol = 3, scales = "free") +
       scale_size_continuous(range = c(2, 8), breaks = c(20, 40, 60), name = "Percent Expressed") +
-      scale_color_gradient(low = "lightgrey", high = "red", name = "Average Expression") +
+      scale_color_gradientn(colors = c("white", "lightgray", "red"), values = scales::rescale(c(0, 0.001, max(combined_summary_data$avg_expression, na.rm = TRUE))),
+                            name = "Average Expression") +
       ggtitle(paste("Expression of", group_name, "Markers Across Clusters")) +
       theme_minimal() +
       theme(
@@ -156,7 +165,7 @@ for (group_name in names(marker_groups)) {
       ylab("")
   }
 
-  output_file <- file.path(dimplot_output_dir, paste0("dotplot_", group_name, "_nkp46_markers.pdf"))
+  output_file <- file.path(dimplot_output_dir, paste0("dotplot_", group_name, "_nkp46_markers_filtered.pdf"))
   ggsave(output_file, plot = combined_plot, width = 12, height = plot_height, dpi = 600)
   cat(sprintf("📊 Dot plot saved to: %s\n", output_file))
 }
