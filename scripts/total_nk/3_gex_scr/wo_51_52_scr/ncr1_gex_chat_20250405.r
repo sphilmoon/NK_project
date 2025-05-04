@@ -4,6 +4,7 @@
 library(Seurat)
 library(dplyr)
 library(ggplot2)
+library(cowplot)
 
 # ------------------------- #
 # Define Paths and Configs
@@ -31,34 +32,40 @@ if ("SCT" %in% Assays(seurat_obj)) {
 }
 cat("✅ Default assay set to", DefaultAssay(seurat_obj), "\n")
 
+# Ensure layers are joined (Seurat v5)
+# seurat_obj <- JoinLayers(seurat_obj, assay = DefaultAssay(seurat_obj))
+
 # ------------------------- #
-# Check Gene Exists
+# Define Gene to Plot
 # ------------------------- #
 gene <- "NCR1"
-if (!gene %in% rownames(seurat_obj)) {
+
+# Check if gene exists
+expr_data_all <- GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data")
+if (!gene %in% rownames(expr_data_all)) {
   stop("❌ Gene ", gene, " not found in the Seurat object.")
 }
+cat("✅ Gene", gene, "found in the Seurat object\n")
 
 # ------------------------- #
-# Plot FeaturePlot (Split by Cluster)
+# Create Seurat DotPlot
 # ------------------------- #
-cat("🎨 Creating FeaturePlot split by cluster for", gene, "\n")
+cat("🎨 Creating DotPlot for", gene, "expression across clusters...\n")
 
-plot <- FeaturePlot(
-  object = seurat_obj,
-  features = gene,
-  split.by = "seurat_clusters",
-  cols = c("white", "lightgray", "red"),
-  pt.size = 0.5
-) +
+dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
+  theme_minimal() +
+  ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
   theme(
-    strip.text = element_text(size = 10),
-    plot.title = element_text(hjust = 0.5)
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+    axis.text.y = element_text(size = 10),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank()
   )
 
 # ------------------------- #
-# Save PDF
+# Save Plot
 # ------------------------- #
-pdf_path <- file.path(output_dir, paste0(gene, "_DimPlotStyle_splitByCluster.pdf"))
-ggsave(pdf_path, plot, width = 12, height = 8, dpi = 600, bg = "transparent")
-cat("✅ Split-by-cluster FeaturePlot saved to", pdf_path, "\n")
+output_file <- file.path(output_dir, paste0("DotPlot_", gene, "_clusters.pdf"))
+ggsave(filename = output_file, plot = dot_plot, width = 8, height = 6, dpi = 600)
+cat("✅ DotPlot saved to", output_file, "\n")
