@@ -54,7 +54,6 @@ cat("🎨 Creating DotPlot for", gene, "expression across clusters...\n")
 
 dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
   theme_minimal() +
-  scale_y_continuous() +
   ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
   coord_flip() +  # <--- FLIPS axes: now clusters are x-axis, gene is y-axis
   theme(
@@ -68,6 +67,6 @@ dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
 # ------------------------- #
 # Save Plot
 # ------------------------- #
-output_file <- file.path(output_dir, paste0("DotPlot_", gene, "_clusters.pdf"))
-ggsave(filename = output_file, plot = dot_plot, width = 8, height = 6, dpi = 600)
+output_file <- file.path(output_dir, paste0("dotPlot_", gene, "_clusters.pdf"))
+ggsave(filename = output_file, plot = dot_plot, width = 8, height = 2, dpi = 600)
 cat("✅ DotPlot saved to", output_file, "\n")
