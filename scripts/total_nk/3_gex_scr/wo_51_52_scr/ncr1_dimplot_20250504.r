@@ -32,9 +32,6 @@ if ("SCT" %in% Assays(seurat_obj)) {
 }
 cat("✅ Default assay set to", DefaultAssay(seurat_obj), "\n")
 
-# Ensure layers are joined (Seurat v5)
-# seurat_obj <- JoinLayers(seurat_obj, assay = DefaultAssay(seurat_obj))
-
 # ------------------------- #
 # Define Gene to Plot
 # ------------------------- #
@@ -48,14 +45,26 @@ if (!gene %in% rownames(expr_data_all)) {
 cat("✅ Gene", gene, "found in the Seurat object\n")
 
 # ------------------------- #
-# Create Seurat DotPlot
+# Extract DotPlot Data
 # ------------------------- #
-cat("🎨 Creating DotPlot for", gene, "expression across clusters...\n")
+cat("🔍 Extracting DotPlot data...\n")
+dp_data <- DotPlot(seurat_obj, features = gene)$data
+dp_data <- dp_data %>%
+  mutate(color = ifelse(avg.exp.scaled == 0, "white", avg.exp.scaled))
 
-dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
+# ------------------------- #
+# Custom ggplot with manual color mapping
+# ------------------------- #
+cat("🎨 Creating custom DotPlot with white for zero expression...\n")
+custom_dotplot <- ggplot(dp_data, aes(x = id, y = features.plot)) +
+  geom_point(aes(size = pct.exp, color = color)) +
+  scale_size(range = c(2, 6), name = "Percent Expressed") +
+  scale_color_gradientn(colors = c("lightgrey", "red"), 
+                        limits = c(min(dp_data$color[dp_data$color != "white"]), max(dp_data$color[dp_data$color != "white"])),
+                        na.value = "white", name = "Avg. Expression") +
+  coord_flip() +
   theme_minimal() +
   ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
-  coord_flip() +  # <--- FLIPS axes: now clusters are x-axis, gene is y-axis
   theme(
     plot.title = element_text(hjust = 0.5, size = 14),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
@@ -67,6 +76,6 @@ dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
 # ------------------------- #
 # Save Plot
 # ------------------------- #
-output_file <- file.path(output_dir, paste0("dotPlot_", gene, "_clusters.pdf"))
-ggsave(filename = output_file, plot = dot_plot, width = 8, height = 2, dpi = 600)
-cat("✅ DotPlot saved to", output_file, "\n")
+output_file <- file.path(output_dir, paste0("dotplot_custom_", gene, "_clusters.pdf"))
+ggsave(filename = output_file, plot = custom_dotplot, width = 8, height = 4, dpi = 600)
+cat("✅ Custom DotPlot saved to", output_file, "\n")
