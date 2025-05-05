@@ -3,3 +3,4 @@ rawdata/nkp46_pos_neg/
 *.err
 *.out
 outputs/nkp46_outputs/dotplot_pdf
+outputs/all_merged_TotalNK_nkp46/rds/
