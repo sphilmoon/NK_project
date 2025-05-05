@@ -48,11 +48,21 @@ if (!gene %in% rownames(expr_data_all)) {
 cat("✅ Gene", gene, "found in the Seurat object\n")
 
 # ------------------------- #
-# Create Seurat DotPlot
+# Extract DotPlot Data
 # ------------------------- #
-cat("🎨 Creating DotPlot for", gene, "expression across clusters...\n")
+cat("🔍 Extracting DotPlot data...\n")
+dp_data <- DotPlot(seurat_obj, features = gene)$data
 
-dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
+# ------------------------- #
+# Custom ggplot with manual color mapping
+# ------------------------- #
+cat("🎨 Creating custom DotPlot with white for zero expression...\n")
+custom_dotplot <- ggplot(dp_data, aes(x = id, y = features.plot)) +
+  geom_point(aes(size = pct.exp, color = avg.exp)) +  # Use avg.exp instead of avg.exp.scaled
+  scale_size(range = c(2, 6), name = "Percent Expressed") +
+  scale_color_gradientn(colors = c("white", "lightgrey", "red"), 
+                        values = scales::rescale(c(0, 0.01, max(dp_data$avg.exp, na.rm = TRUE))),
+                        name = "Avg. Expression (Normalized)") +
   theme_minimal() +
   ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
   theme(
@@ -66,6 +76,6 @@ dot_plot <- DotPlot(seurat_obj, features = gene, cols = c("lightgrey", "red")) +
 # ------------------------- #
 # Save Plot
 # ------------------------- #
-output_file <- file.path(output_dir, paste0("DotPlot_", gene, "_clusters.pdf"))
-ggsave(filename = output_file, plot = dot_plot, width = 8, height = 6, dpi = 600)
-cat("✅ DotPlot saved to", output_file, "\n")
+output_file <- file.path(output_dir, paste0("dotplot_custom_", gene, "_clusters_fix.pdf"))
+ggsave(filename = output_file, plot = custom_dotplot, width = 8, height = 4, dpi = 600, bg = "transparent")
+cat("✅ Custom DotPlot saved to", output_file, "\n")
