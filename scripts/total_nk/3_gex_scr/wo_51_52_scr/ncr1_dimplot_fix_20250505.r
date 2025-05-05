@@ -62,7 +62,7 @@ custom_dotplot <- ggplot(dp_data, aes(x = id, y = features.plot)) +
   scale_size(range = c(2, 6), name = "Percent Expressed") +
   scale_color_gradientn(colors = c("white", "lightgrey", "red"), 
                         values = scales::rescale(c(0, 0.01, max(dp_data$avg.exp, na.rm = TRUE))),
-                        name = "Avg. Expression (Normalized)") +
+                        name = "Average Expression") +
   theme_minimal() +
   ggtitle(paste("DotPlot of", gene, "Expression Across Clusters")) +
   theme(
