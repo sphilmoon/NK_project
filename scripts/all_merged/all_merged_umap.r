@@ -136,15 +136,15 @@ cat("✅ Scaled data\n")
 # Run PCA with Consistent Dims
 # ------------------------- #
 merged_obj <- RunPCA(merged_obj, npcs = 25)
-cat("✅ Ran PCA with 25 dimensions\n")
+cat("✅ Completed PCA with 25 dimensions\n")
 
 # ------------------------- #
 # Cluster and UMAP with Consistent Resolution
 # ------------------------- #
 merged_obj <- FindNeighbors(merged_obj, dims = 1:25)
-merged_obj <- FindClusters(merged_obj, resolution = 0.5)
+merged_obj <- FindClusters(merged_obj, resolution = 0.3)
 merged_obj <- RunUMAP(merged_obj, dims = 1:25)
-cat("✅ Ran clustering and UMAP with resolution 0.5\n")
+cat("✅ Completed clustering and UMAP with resolution 0.3\n")
 
 # ------------------------- #
 # Create Combined UMAP Visualization
@@ -153,7 +153,7 @@ cat("🎨 Creating combined UMAP visualization...\n")
 
 umap_plot <- DimPlot(merged_obj, group.by = "sample_id", pt.size = 0.5) +
   theme_minimal() +
-  ggtitle("Combined UMAP of Total NK, NKp46+, and NKp46- (dims25, res 0.5)") +
+  ggtitle("Combined UMAP of Total NK, NKp46+, and NKp46- (dims25, res 0.3)") +
   theme(
     plot.title = element_text(hjust = 0.5, size = 14),
     axis.text = element_text(size = 10),
@@ -164,13 +164,13 @@ umap_plot <- DimPlot(merged_obj, group.by = "sample_id", pt.size = 0.5) +
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
   )
+
 # ------------------------- #
 # Save Plot
 # ------------------------- #
-output_file <- file.path(output_dir, "figures/combined_UMAP_TotalNK_NKp46_d25_res0.5.pdf")
+output_file <- file.path(output_dir, "figures/combined_UMAP_TotalNK_NKp46_d25_res0.3.pdf")
 ggsave(filename = output_file, plot = umap_plot, width = 10, height = 8, dpi = 600, bg = "transparent")
 cat("✅ Combined UMAP saved to", output_file, "\n")
-
 cat("🎉 UMAP generation complete. Outputs saved in:\n", output_dir, "\n")
 
 
