@@ -88,52 +88,6 @@ if (n_animals != 4) {
 # ------------------------- #
 cat("🎨 Creating combined FeaturePlot for genes across animals...\n")
 
-# # Define a custom theme for consistency
-# umap_theme <- theme_minimal() +
-#   theme(
-#     plot.title = element_text(hjust = 0.5, size = 12),
-#     axis.title = element_blank(),
-#     axis.text = element_blank(),
-#     axis.ticks = element_blank(),
-#     strip.text.x = element_text(size = 10, face = "bold"),  # Animal labels (on top, as columns)
-#     strip.text.y = element_text(size = 10, face = "bold"),  # Gene labels (on side, as rows)
-#     legend.position = "right",
-#     legend.title = element_text(size = 10),
-#     legend.text = element_text(size = 8)
-#   )
-
-# # Generate FeaturePlot with split.by for animals
-# combined_feature_plot <- FeaturePlot(
-#   seurat_obj,
-#   features = genes,
-#   split.by = "sample",  # Facet by animal (4 columns)
-#   pt.size = 0.5,
-#   order = TRUE,  # Plot cells with higher expression on top
-#   ncol = 4  # Force 4 columns (one per animal)
-# ) +
-#   scale_color_gradientn(
-#     colors = c("lightgrey", "blue", "red"),
-#     name = "Expression Level"
-#   ) +
-#   umap_theme 
-
-# # ------------------------- #
-# # Save Combined Plot
-# # ------------------------- #
-# featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped.pdf")
-# ggsave(
-#   filename = featureplot_file,
-#   plot = combined_feature_plot,
-#   width = 4 * 4,  # 4 animals (columns), 4 inches each
-#   height = 4 * 6,  # 6 genes (rows), 4 inches each
-#   dpi = 600,
-#   bg = "transparent"
-# )
-# cat("✅ Combined FeaturePlot saved to", featureplot_file, "\n")
-
-
-
-
 # Define a custom theme for consistency
 umap_theme <- theme_minimal() +
   theme(
@@ -141,69 +95,37 @@ umap_theme <- theme_minimal() +
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    strip.text.x = element_text(size = 10, face = "bold"),  # Gene labels (on top, as columns)
-    strip.text.y = element_text(size = 10, face = "bold"),  # Animal labels (on side, as rows)
+    strip.text.x = element_text(size = 10, face = "bold"),  # Animal labels (on top, as columns)
+    strip.text.y = element_text(size = 10, face = "bold"),  # Gene labels (on side, as rows)
     legend.position = "right",
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8)
   )
 
-# Debug: Check CD68 expression for animal 28
-cat("🔍 Checking CD68 expression for animal 28...\n")
-animal_28_cells <- which(seurat_obj$sample == "28")
-cd68_expr <- GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data")["CD68", animal_28_cells]
-if (length(cd68_expr) == 0 || all(cd68_expr == 0)) {
-  cat("⚠️ No CD68 expression data for animal 28 or all values are 0.\n")
-} else {
-  cat("✅ CD68 expression data exists for animal 28. Range:", range(cd68_expr, na.rm = TRUE), "\n")
-}
-
-# Generate individual FeaturePlots for each gene-animal combination
-plot_list <- list()
-animals <- unique(seurat_obj$sample)  # Should be 4 animals
-# genes <- c("CD3", "CD4", "CD8a", "CD14", "CD40", "CD68")
-
-for (animal in animals) {
-  for (gene in genes) {
-    # Subset the Seurat object for the current animal
-    subset_obj <- subset(seurat_obj, subset = sample == animal)
-    
-    # Create FeaturePlot for the current gene and animal
-    p <- FeaturePlot(
-      subset_obj,
-      features = gene,
-      pt.size = 0.5,
-      order = TRUE
-    ) +
-      scale_color_gradientn(
-        colors = c("lightgrey", "blue", "red"),
-        name = "Expression Level",
-        limits = c(0, max(GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data")[genes, ], na.rm = TRUE))  # Shared scale
-      ) +
-      umap_theme +
-      ggtitle(paste(gene, "-", animal))
-    
-    plot_list[[paste(animal, gene, sep = "_")]] <- p
-  }
-}
-
-# Arrange plots in a 4x6 grid (4 rows for animals, 6 columns for genes)
-plot_grid <- cowplot::plot_grid(
-  plotlist = plot_list,
-  nrow = 4,  # 4 rows (one per animal)
-  ncol = 6,  # 6 columns (one per gene)
-  labels = NULL  # Remove default labels; titles already include gene and animal
-)
+# Generate FeaturePlot with split.by for animals
+combined_feature_plot <- FeaturePlot(
+  seurat_obj,
+  features = genes,
+  split.by = "sample",  # Facet by animal (4 columns)
+  pt.size = 0.5,
+  order = TRUE,  # Plot cells with higher expression on top
+  ncol = 4  # Force 4 columns (one per animal)
+) +
+  scale_color_gradientn(
+    colors = c("lightgrey", "blue", "red"),
+    name = "Expression Level"
+  ) +
+  umap_theme 
 
 # ------------------------- #
 # Save Combined Plot
 # ------------------------- #
-featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_fixed_grid.pdf")
+featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped2.pdf")
 ggsave(
   filename = featureplot_file,
-  plot = plot_grid,
-  width = 4 * 6,  # 6 genes (columns), 4 inches each
-  height = 4 * 4,  # 4 animals (rows), 4 inches each
+  plot = combined_feature_plot,
+  width = 4 * 4,  # 4 animals (columns), 4 inches each
+  height = 4 * 6,  # 6 genes (rows), 4 inches each
   dpi = 600,
   bg = "transparent"
 )
