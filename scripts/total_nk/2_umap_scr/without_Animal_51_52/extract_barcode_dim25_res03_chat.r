@@ -25,26 +25,27 @@ seurat_obj <- FindNeighbors(seurat_obj, dims = 1:25)
 seurat_obj <- FindClusters(seurat_obj, resolution = 0.3)
 cat("✅ Clustering complete using dims 1:25 and resolution 0.3\n")
 
-# Extract barcodes and cluster assignments
+# Extract barcodes, cluster IDs, and sample (animal ID)
 barcode_cluster_df <- data.frame(
   barcode = colnames(seurat_obj),
-  cluster_id = Idents(seurat_obj)
+  cluster_id = Idents(seurat_obj),
+  sample = seurat_obj$sample
 )
 
 # Save to CSV
 write.csv(barcode_cluster_df, output_csv, row.names = FALSE)
 cat("✅ Barcodes and cluster IDs saved to", output_csv, "\n")
 
-# Generate and save a UMAP plot with cluster labels
-if (!"umap" %in% names(seurat_obj@reductions)) {
-  seurat_obj <- RunUMAP(seurat_obj, dims = 1:25)
-  cat("ℹ️ UMAP computed using dims 1:25\n")
-}
+# # Generate and save a UMAP plot with cluster labels
+# if (!"umap" %in% names(seurat_obj@reductions)) {
+#   seurat_obj <- RunUMAP(seurat_obj, dims = 1:25)
+#   cat("ℹ️ UMAP computed using dims 1:25\n")
+# }
 
-umap_plot <- DimPlot(seurat_obj, reduction = "umap", label = TRUE, pt.size = 0.3) +
-  ggtitle("UMAP Clustering (dims=25, res=0.3)") +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  scale_color_brewer(palette = "Set3")
+# umap_plot <- DimPlot(seurat_obj, reduction = "umap", label = TRUE, pt.size = 0.3) +
+#   ggtitle("UMAP Clustering (dims=25, res=0.3)") +
+#   theme(plot.title = element_text(hjust = 0.5)) +
+#   scale_color_brewer(palette = "Set3")
 
-ggsave(output_umap, plot = umap_plot, width = 8, height = 6, dpi = 600)
-cat("✅ UMAP plot saved to", output_umap, "\n")
+# ggsave(output_umap, plot = umap_plot, width = 8, height = 6, dpi = 600)
+# cat("✅ UMAP plot saved to", output_umap, "\n")
