@@ -10,7 +10,7 @@ library(cowplot)
 # Define Paths and Configs
 # ------------------------- #
 rds_file <- "/home/outputs/totalNK_outputs/2_umap/wo_51_52/rds/integrated_data_dims25_res0.3_genecounts.rds"
-output_dir <- "/home/outputs/totalNK_outputs/2_umap"
+output_dir <- "/home/outputs/totalNK_outputs/2_umap/wo_51_52/pdf"
 
 if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
@@ -40,10 +40,10 @@ cat("✅ Default assay set to", DefaultAssay(seurat_obj), "\n")
 # ------------------------- #
 # explore the metadata
 cat("🎯 Exploring metadata columns...\n")
-print(DefaultAssay(seurat_obj))
+# print(DefaultAssay(seurat_obj))
 # head(GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data"))
 # head(GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "counts"))
-# head(seurat_obj@meta.data)
+head(seurat_obj@meta.data)
 
 genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68") # CD14 is missing.
 
@@ -95,8 +95,8 @@ umap_theme <- theme_minimal() +
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    strip.text.x = element_text(size = 10, face = "bold"),  # Animal labels
-    strip.text.y = element_text(size = 10, face = "bold"),  # Gene labels
+    strip.text.x = element_text(size = 10, face = "bold"),  # Gene labels (now on top)
+    strip.text.y = element_text(size = 10, face = "bold"),  # Animal labels (now on the side)
     legend.position = "right",
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8)
@@ -109,7 +109,7 @@ combined_feature_plot <- FeaturePlot(
   split.by = "sample",  # Facet by animal
   pt.size = 0.5,
   order = TRUE,  # Plot cells with higher expression on top
-  ncol = 4  # Force 4 columns (one per animal)
+  ncol = 6  # Force 6 columns (one per gene)
 ) +
   scale_color_gradientn(
     colors = c("lightgrey", "blue", "red"),
@@ -120,12 +120,12 @@ combined_feature_plot <- FeaturePlot(
 # ------------------------- #
 # Save Combined Plot
 # ------------------------- #
-featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal.pdf")
+featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped.pdf")
 ggsave(
   filename = featureplot_file,
   plot = combined_feature_plot,
-  width = 4 * 4,  # 4 animals, 4 inches each
-  height = 4 * 6,  # 6 genes, 4 inches each
+  width = 4 * 6,  # 6 genes (columns), 4 inches each
+  height = 4 * 4,  # 4 animals (rows), 4 inches each
   dpi = 600,
   bg = "transparent"
 )
