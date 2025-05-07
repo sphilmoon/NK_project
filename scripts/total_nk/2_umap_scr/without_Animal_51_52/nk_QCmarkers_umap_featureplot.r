@@ -115,12 +115,17 @@ combined_feature_plot <- FeaturePlot(
     colors = c("lightgrey", "blue", "red"),
     name = "Expression Level"
   ) +
-  umap_theme + coord_flip()
+  umap_theme + coord_flip() +  # Flip coordinates to have genes on the y-axis
+  labs(title = "FeaturePlot of Genes by Animal") +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    strip.text.x = element_text(angle = 90)  # Rotate animal labels for better visibility
+  )
 
 # ------------------------- #
 # Save Combined Plot
 # ------------------------- #
-featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped.pdf")
+featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped2.pdf")
 ggsave(
   filename = featureplot_file,
   plot = combined_feature_plot,
@@ -130,50 +135,3 @@ ggsave(
   bg = "transparent"
 )
 cat("✅ Combined FeaturePlot saved to", featureplot_file, "\n")
-
-
-
-
-# # ------------------------- #
-# # Generate Faceted FeaturePlot
-# # ------------------------- #
-# cat("🎨 Creating faceted FeaturePlot with genes as columns and samples as rows...\n")
-
-# fp <- FeaturePlot(
-#   object = seurat_obj,
-#   features = genes,
-#   split.by = "sample",  # split across animals
-#   pt.size = 0.5,
-#   order = TRUE,
-#   combine = TRUE
-# )
-
-# # Override facet layout: genes in columns, samples in rows
-# fp <- fp + 
-#   facet_grid(rows = vars(sample), cols = vars(feature)) +
-#   scale_color_gradientn(colors = c("lightgrey", "blue", "red"), name = "Expression") +
-#   theme_minimal() +
-#   theme(
-#     strip.text.x = element_text(size = 10, face = "bold"),  # gene names
-#     strip.text.y = element_text(size = 10, face = "bold"),  # animal/sample names
-#     axis.title = element_blank(),
-#     axis.text = element_blank(),
-#     axis.ticks = element_blank(),
-#     legend.position = "right",
-#     legend.title = element_text(size = 10),
-#     legend.text = element_text(size = 8)
-#   )
-
-# # ------------------------- #
-# # Save the Plot
-# # ------------------------- #
-# featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_rows_animals_cols_genes.pdf")
-# ggsave(
-#   filename = featureplot_file,
-#   plot = fp,
-#   width = 4 * length(genes),
-#   height = 4 * length(unique(seurat_obj$sample)),
-#   dpi = 600,
-#   bg = "transparent"
-# )
-# cat("✅ Faceted FeaturePlot saved to", featureplot_file, "\n")
