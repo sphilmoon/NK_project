@@ -42,7 +42,7 @@ cat("✅ Default assay set to", DefaultAssay(seurat_obj), "\n")
 cat("🎯 Exploring metadata columns...\n")
 # print(DefaultAssay(seurat_obj))
 head(GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data"))
-head(GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "counts"))
+# head(GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "counts"))
 # head(seurat_obj@meta.data)
 
 genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68") # CD14 is missing.
@@ -95,8 +95,8 @@ umap_theme <- theme_minimal() +
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    strip.text.x = element_text(size = 10, face = "bold"),  # Gene labels (on top, as columns)
-    strip.text.y = element_text(size = 10, face = "bold"),  # Animal labels (on side, as rows)
+    strip.text.x = element_text(size = 10, face = "bold"),  # Animal labels (on top, as columns)
+    strip.text.y = element_text(size = 10, face = "bold"),  # Gene labels (on side, as rows)
     legend.position = "right",
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8)
@@ -106,26 +106,26 @@ umap_theme <- theme_minimal() +
 combined_feature_plot <- FeaturePlot(
   seurat_obj,
   features = genes,
-  split.by = "sample",  # Facet by animal (4 rows)
+  split.by = "sample",  # Facet by animal (4 columns)
   pt.size = 0.5,
   order = TRUE,  # Plot cells with higher expression on top
-  ncol = 6  # Force 6 columns (one per gene)
+  ncol = 4  # Force 4 columns (one per animal)
 ) +
   scale_color_gradientn(
     colors = c("lightgrey", "blue", "red"),
     name = "Expression Level"
   ) +
-  umap_theme
+  umap_theme + coord_flip()
 
 # ------------------------- #
 # Save Combined Plot
 # ------------------------- #
-featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_fixed.pdf")
+featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped.pdf")
 ggsave(
   filename = featureplot_file,
   plot = combined_feature_plot,
-  width = 4 * 6,  # 6 genes (columns), 4 inches each
-  height = 4 * 4,  # 4 animals (rows), 4 inches each
+  width = 4 * 4,  # 4 animals (columns), 4 inches each
+  height = 4 * 6,  # 6 genes (rows), 4 inches each
   dpi = 600,
   bg = "transparent"
 )
@@ -134,5 +134,46 @@ cat("✅ Combined FeaturePlot saved to", featureplot_file, "\n")
 
 
 
+# # ------------------------- #
+# # Generate Faceted FeaturePlot
+# # ------------------------- #
+# cat("🎨 Creating faceted FeaturePlot with genes as columns and samples as rows...\n")
 
+# fp <- FeaturePlot(
+#   object = seurat_obj,
+#   features = genes,
+#   split.by = "sample",  # split across animals
+#   pt.size = 0.5,
+#   order = TRUE,
+#   combine = TRUE
+# )
 
+# # Override facet layout: genes in columns, samples in rows
+# fp <- fp + 
+#   facet_grid(rows = vars(sample), cols = vars(feature)) +
+#   scale_color_gradientn(colors = c("lightgrey", "blue", "red"), name = "Expression") +
+#   theme_minimal() +
+#   theme(
+#     strip.text.x = element_text(size = 10, face = "bold"),  # gene names
+#     strip.text.y = element_text(size = 10, face = "bold"),  # animal/sample names
+#     axis.title = element_blank(),
+#     axis.text = element_blank(),
+#     axis.ticks = element_blank(),
+#     legend.position = "right",
+#     legend.title = element_text(size = 10),
+#     legend.text = element_text(size = 8)
+#   )
+
+# # ------------------------- #
+# # Save the Plot
+# # ------------------------- #
+# featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_rows_animals_cols_genes.pdf")
+# ggsave(
+#   filename = featureplot_file,
+#   plot = fp,
+#   width = 4 * length(genes),
+#   height = 4 * length(unique(seurat_obj$sample)),
+#   dpi = 600,
+#   bg = "transparent"
+# )
+# cat("✅ Faceted FeaturePlot saved to", featureplot_file, "\n")
