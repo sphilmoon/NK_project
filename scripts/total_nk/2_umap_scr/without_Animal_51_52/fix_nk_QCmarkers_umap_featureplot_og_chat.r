@@ -37,8 +37,56 @@ stopifnot("sample" %in% colnames(seurat_obj@meta.data), "umap" %in% names(seurat
 # ------------------------- #
 # Define Genes and Animals
 # ------------------------- #
-genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68")
+genes <- c("CD4", "CD8A", "CD40", "CD68") # "CD3D", "CD3E", "CD3G", "ENSBTAG00000015032 (cd14)" removed
 animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
+
+
+# Check if genes exist
+expr_data_all <- GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data")
+# cat("Available genes (first 10):", head(rownames(expr_data_all), 10), "\n")
+missing_genes <- genes[!genes %in% rownames(expr_data_all)]
+if (length(missing_genes) > 0) {
+  cat("⚠️ Missing genes:", paste(missing_genes, collapse = ", "), "\n")
+  cat("Searching for similar names...\n")
+  for (g in missing_genes) {
+    similar <- grep(g, rownames(expr_data_all), value = TRUE, ignore.case = TRUE)
+    if (length(similar) > 0) cat("  Possible match for", g, ":", paste(similar, collapse = ", "), "\n")
+  }
+  stop("❌ Genes not found in the Seurat object: ", paste(missing_genes, collapse = ", "))
+}
+cat("✅ All genes found in the Seurat object: ", paste(genes, collapse = ", "), "\n")
+
+# Debug: Validate animals exist in the sample column
+if ("sample" %in% colnames(seurat_obj@meta.data)) {
+  missing_animals <- animals[!animals %in% seurat_obj$sample]
+  if (length(missing_animals) > 0) {
+    stop("❌ Animals not found in 'sample' column: ", paste(missing_animals, collapse = ", "))
+  }
+  cat("✅ All animals found in 'sample' column: ", paste(animals, collapse = ", "), "\n")
+}
+
+# Debug: Check cell counts per animal
+cat("🔍 Cell counts per animal:\n")
+for (animal in animals) {
+  n_cells <- sum(seurat_obj$sample == animal)
+  cat("  Animal", animal, ":", n_cells, "cells\n")
+  if (n_cells == 0) {
+    warning("⚠️ No cells found for animal ", animal, ". FeaturePlots will be empty for this animal.")
+  }
+}
+
+# Validate genes
+expr_data_all <- GetAssayData(seurat_obj, assay = DefaultAssay(seurat_obj), layer = "data")
+missing_genes <- genes[!genes %in% rownames(expr_data_all)]
+if (length(missing_genes) > 0) {
+  warning("⚠️ Genes not found: ", paste(missing_genes, collapse = ", "), ". These will be skipped.")
+  genes <- genes[genes %in% rownames(expr_data_all)]  # Filter out missing genes
+}
+cat("✅ Valid genes found: ", paste(genes, collapse = ", "), "\n")
+
+# Check for UMAP and sample metadata
+stopifnot("umap" %in% names(seurat_obj@reductions))
+stopifnot("sample" %in% colnames(seurat_obj@meta.data))
 
 # Validate animals and genes
 missing_animals <- setdiff(animals, unique(seurat_obj$sample))
@@ -161,7 +209,7 @@ final_plot <- plot_grid(
 # ------------------------- #
 # Save to PDF
 # ------------------------- #
-output_file <- file.path(output_dir, "FeaturePlot_animals_rows_genes_cols.pdf")
+output_file <- file.path(output_dir, "FeaturePlot_animals_rows_genes_cols_NOcd3.pdf")
 ggsave(
   filename = output_file,
   plot = final_plot,
