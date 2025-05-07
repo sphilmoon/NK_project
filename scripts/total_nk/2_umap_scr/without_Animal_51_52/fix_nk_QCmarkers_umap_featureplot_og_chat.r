@@ -209,7 +209,7 @@ final_plot <- plot_grid(
 # ------------------------- #
 # Save to PDF
 # ------------------------- #
-output_file <- file.path(output_dir, "FeaturePlot_animals_rows_genes_cols_NOcd3.pdf")
+output_file <- file.path(output_dir, "FeaturePlot_animals_rows_genes_cols_NOcd3.png")
 ggsave(
   filename = output_file,
   plot = final_plot,
