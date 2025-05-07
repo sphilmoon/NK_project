@@ -191,7 +191,7 @@ final_plot <- final_grid + legend + plot_layout(widths = c(length(genes) + 1, 0.
 # ------------------------- #
 # Save Final Combined Plot
 # ------------------------- #
-output_file <- file.path(output_dir, "combined_FeaturePlot_animals_rows_genes_cols.pdf")
+output_file <- file.path(output_dir, "combined_FeaturePlot_animals_rows_genes_cols_chat.pdf")
 ggsave(
   filename = output_file,
   plot = final_plot,

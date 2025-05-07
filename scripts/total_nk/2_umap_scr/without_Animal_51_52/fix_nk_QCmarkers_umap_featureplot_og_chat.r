@@ -37,7 +37,7 @@ stopifnot("sample" %in% colnames(seurat_obj@meta.data), "umap" %in% names(seurat
 # ------------------------- #
 # Define Genes and Animals
 # ------------------------- #
-genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68", "ENSBTAG00000015032")
+genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68")
 animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
 
 # Validate animals and genes
