@@ -49,7 +49,7 @@ if ("sample" %in% colnames(seurat_obj@meta.data)) {
 # Define Genes and Animals
 # ------------------------- #
 genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68")
-animals <- c("Animal25", "Animal26", "Animal27", "Animal28")  # Fixed to match sample column values
+animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
 
 # Debug: Validate animals exist in the sample column
 if ("sample" %in% colnames(seurat_obj@meta.data)) {
@@ -83,20 +83,35 @@ stopifnot("umap" %in% names(seurat_obj@reductions))
 stopifnot("sample" %in% colnames(seurat_obj@meta.data))
 
 # ------------------------- #
-# Generate Plots by (animal × gene)
+# Compute Shared Expression Scale
+# ------------------------- #
+cat("🔍 Computing shared expression scale...\n")
+expr_range <- range(expr_data_all[genes, ], na.rm = TRUE)
+cat("Expression range for all genes:", expr_range[1], "to", expr_range[2], "\n")
+
+# ------------------------- #
+# Generate Plots by (gene × animal)
 # ------------------------- #
 cat("🎨 Generating FeaturePlots for genes across animals...\n")
 plot_grid_list <- list()
 
-table(seurat_obj$sample)
+# Define a minimal theme for plots
+umap_theme <- theme_minimal() +
+  theme(
+    plot.title = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = "none"
+  )
 
-for (animal in animals) {
+for (gene in genes) {
   row_plots <- list()
   
-  for (gene in genes) {
+  for (animal in animals) {
     subset_obj <- subset(seurat_obj, subset = sample == animal)
     
-    # Use consistent color scaling with legend only for the last plot
+    # Generate FeaturePlot with shared expression scale
     p <- FeaturePlot(
       subset_obj,
       features = gene,
@@ -104,52 +119,80 @@ for (animal in animals) {
       pt.size = 0.5,
       order = TRUE
     ) +
-    scale_color_gradientn(colors = c("lightgrey", "blue", "red"), name = "Expression") +
-    theme_minimal() +
-    theme(
-      plot.title = element_blank(),
-      axis.title = element_blank(),
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      legend.position = "none"
-    )
+    scale_color_gradientn(
+      colors = c("lightgrey", "blue"),
+      name = "Expression",
+      limits = expr_range  # Shared scale
+    ) +
+    umap_theme
     
-    row_plots[[gene]] <- p
+    row_plots[[animal]] <- p
   }
   
-  # Combine row
-  row_patch <- wrap_plots(row_plots, ncol = length(genes))
-  plot_grid_list[[animal]] <- row_patch
+  # Combine row (one row per gene, columns are animals)
+  row_patch <- wrap_plots(row_plots, ncol = length(animals))
+  plot_grid_list[[gene]] <- row_patch
 }
 
-# Combine all rows (animals = rows)
-full_grid <- wrap_plots(plot_grid_list, nrow = length(animals))
+# Combine all rows (genes = rows, animals = columns)
+full_grid <- wrap_plots(plot_grid_list, nrow = length(genes))
 
 # Add legend from a representative plot
 legend_plot <- FeaturePlot(
-  subset(seurat_obj, subset = sample == "Animal25"),  # Fixed to match actual animal name
+  subset(seurat_obj, subset = sample == "Animal25"),
   features = genes[1],
   reduction = "umap",
   pt.size = 0.5
 ) +
-scale_color_gradientn(colors = c("lightgrey", "blue", "red"), name = "Expression") +
+scale_color_gradientn(
+  colors = c("lightgrey", "blue", "red"),
+  name = "Expression",
+  limits = expr_range
+) +
 theme(legend.position = "right")
 
 # Extract legend
 legend <- cowplot::get_legend(legend_plot)
 
-# Combine grid and legend
-final_plot <- full_grid + patchwork::plot_layout(guides = "collect") & theme(legend.position = "right")
+# Combine grid with labels and legend
+final_plot <- full_grid +
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    theme = theme(
+      plot.margin = margin(10, 10, 10, 10)
+    ),
+    # Add column labels (animals at the top)
+    tag_levels = list(animals),
+    tag_prefix = "",
+    tag_suffix = "",
+    tag_sep = ""
+  ) &
+  theme(
+    legend.position = "right",
+    plot.tag = element_text(size = 10, face = "bold", hjust = 0.5),
+    plot.tag.position = "top"
+  )
+
+# Add row labels (genes on the left) manually by adjusting the plot layout
+# Since patchwork doesn't directly support row labels, we'll use a workaround with plot titles
+for (i in seq_along(genes)) {
+  final_plot[[i]] <- final_plot[[i]] + plot_annotation(
+    title = genes[i],
+    theme = theme(
+      plot.title = element_text(size = 10, face = "bold", hjust = -0.1, vjust = 0.5)
+    )
+  )
+}
 
 # ------------------------- #
 # Save Final Combined Plot
 # ------------------------- #
-output_file <- file.path(output_dir, "combined_FeaturePlot_animals_rows_genes_cols.pdf")
+output_file <- file.path(output_dir, "combined_FeaturePlot_genes_rows_animals_cols.pdf")
 ggsave(
   filename = output_file,
   plot = final_plot,
-  width = 4 * length(genes),
-  height = 4 * length(animals),
+  width = 4 * length(animals),  # 4 animals (columns)
+  height = 4 * length(genes),   # 7 genes (rows)
   dpi = 600,
   bg = "transparent"
 )
