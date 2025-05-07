@@ -48,7 +48,7 @@ if ("sample" %in% colnames(seurat_obj@meta.data)) {
 # ------------------------- #
 # Define Genes and Animals
 # ------------------------- #
-genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68")
+genes <- c("CD3D", "CD3E", "CD3G", "CD4", "CD8A", "CD40", "CD68", "ENSBTAG00000015032") # missing CD14 gene
 animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
 
 # Debug: Validate animals exist in the sample column
@@ -145,7 +145,7 @@ legend_plot <- FeaturePlot(
   pt.size = 0.5
 ) +
 scale_color_gradientn(
-  colors = c("lightgrey", "blue", "red"),
+  colors = c("lightgrey", "blue"),
   name = "Expression",
   limits = expr_range
 ) +
