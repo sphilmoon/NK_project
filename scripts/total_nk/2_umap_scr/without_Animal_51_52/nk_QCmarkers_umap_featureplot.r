@@ -95,8 +95,8 @@ umap_theme <- theme_minimal() +
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    strip.text.x = element_text(size = 10, face = "bold"),  # Animal labels (on top, as columns)
-    strip.text.y = element_text(size = 10, face = "bold"),  # Gene labels (on side, as rows)
+    strip.text.x = element_text(size = 10, face = "bold"),  # Gene labels (on top, as columns)
+    strip.text.y = element_text(size = 10, face = "bold"),  # Animal labels (on side, as rows)
     legend.position = "right",
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8)
@@ -106,10 +106,10 @@ umap_theme <- theme_minimal() +
 combined_feature_plot <- FeaturePlot(
   seurat_obj,
   features = genes,
-  split.by = "sample",  # Facet by animal (4 columns)
+  split.by = "sample",  # Facet by animal (4 rows)
   pt.size = 0.5,
   order = TRUE,  # Plot cells with higher expression on top
-  ncol = 4  # Force 4 columns (one per animal)
+  ncol = 6  # Force 6 columns (one per gene)
 ) +
   scale_color_gradientn(
     colors = c("lightgrey", "blue", "red"),
@@ -120,13 +120,19 @@ combined_feature_plot <- FeaturePlot(
 # ------------------------- #
 # Save Combined Plot
 # ------------------------- #
-featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_flipped.pdf")
+featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_fixed.pdf")
 ggsave(
   filename = featureplot_file,
   plot = combined_feature_plot,
-  width = 4 * 4,  # 4 animals (columns), 4 inches each
-  height = 4 * 6,  # 6 genes (rows), 4 inches each
+  width = 4 * 6,  # 6 genes (columns), 4 inches each
+  height = 4 * 4,  # 4 animals (rows), 4 inches each
   dpi = 600,
   bg = "transparent"
 )
 cat("✅ Combined FeaturePlot saved to", featureplot_file, "\n")
+
+
+
+
+
+
