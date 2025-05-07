@@ -88,34 +88,46 @@ if (n_animals != 4) {
 # ------------------------- #
 cat("🎨 Creating combined FeaturePlot for genes across animals...\n")
 
-# Define a custom theme for consistency
+
 umap_theme <- theme_minimal() +
   theme(
     plot.title = element_text(hjust = 0.5, size = 12),
     axis.title = element_blank(),
     axis.text = element_blank(),
     axis.ticks = element_blank(),
-    strip.text.x = element_text(size = 10, face = "bold"),  # Gene labels (now on top)
-    strip.text.y = element_text(size = 10, face = "bold"),  # Animal labels (now on the side)
+    strip.text.x = element_text(size = 10, face = "bold"),  # Animal labels
+    strip.text.y = element_text(size = 10, face = "bold"),  # Gene labels
     legend.position = "right",
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8)
   )
 
-# Generate FeaturePlot with split.by for animals
-combined_feature_plot <- FeaturePlot(
-  seurat_obj,
-  features = genes,
-  split.by = "sample",  # Facet by animal
-  pt.size = 0.5,
-  order = TRUE,  # Plot cells with higher expression on top
-  ncol = 6  # Force 6 columns (one per gene)
-) +
-  scale_color_gradientn(
-    colors = c("lightgrey", "blue", "red"),
-    name = "Expression Level"
+# ------------------------- #
+# Generate FeaturePlot List
+# ------------------------- #
+# Loop through genes and collect individual plots split by sample
+fp_list <- lapply(genes, function(gene) {
+  p <- FeaturePlot(
+    seurat_obj,
+    features = gene,
+    split.by = "sample",  # split across animals
+    pt.size = 0.5,
+    order = TRUE
   ) +
-  umap_theme
+    scale_color_gradientn(
+      colors = c("lightgrey", "blue", "red"),
+      name = "Expression Level"
+    ) +
+    ggtitle(gene) +
+    umap_theme
+  return(p)
+})
+
+# ------------------------- #
+# Arrange with patchwork: genes in rows, samples in columns
+# ------------------------- #
+library(patchwork)
+combined_feature_plot <- wrap_plots(fp_list, ncol = 1)  # stack genes vertically
 
 # ------------------------- #
 # Save Combined Plot
@@ -124,9 +136,9 @@ featureplot_file <- file.path(output_dir, "NK_QCmarkers_featureplot_by_animal_fl
 ggsave(
   filename = featureplot_file,
   plot = combined_feature_plot,
-  width = 4 * 6,  # 6 genes (columns), 4 inches each
-  height = 4 * 4,  # 4 animals (rows), 4 inches each
+  width = 4 * length(unique(seurat_obj$sample)),  # number of animals
+  height = 4 * length(genes),  # number of genes
   dpi = 600,
   bg = "transparent"
 )
-cat("✅ Combined FeaturePlot saved to", featureplot_file, "\n")
+cat("✅ Flipped FeaturePlot saved to", featureplot_file, "\n")
