@@ -20,7 +20,7 @@ dir.create(dirname(output_umap), recursive = TRUE, showWarnings = FALSE)
 seurat_obj <- readRDS(rds_file)
 cat("✅ Loaded Seurat object from", rds_file, "\n")
 
-# Perform clustering (dims = 1:25, resolution = 0.3)
+# Perform clustering (dims = 1:25, resolution = 0.3) to ensure it's up to date
 seurat_obj <- FindNeighbors(seurat_obj, dims = 1:25)
 seurat_obj <- FindClusters(seurat_obj, resolution = 0.3)
 cat("✅ Clustering complete using dims 1:25 and resolution 0.3\n")
