@@ -187,7 +187,7 @@ scale_color_gradientn(
 ) +
 theme(
   legend.position = "right",
-  legend.title = element_text(size = 14, face = "bold"),  # Increase title size
+  legend.title = element_text(size = 14, face = "bold"), # Increase title size
   legend.text = element_text(size = 12),                 # Increase text size
   legend.key.size = unit(1.5, "cm"),                     # Increase the color bar size
   legend.key.width = unit(0.5, "cm")                     # Adjust width of the color bar
