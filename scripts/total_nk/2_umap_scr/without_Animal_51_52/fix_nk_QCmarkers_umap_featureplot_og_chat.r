@@ -156,7 +156,7 @@ full_plot <- wrap_plots(plot_matrix, nrow = length(animals))
 # ------------------------- #
 gene_labels <- lapply(genes, function(gene) {
   ggplot() +
-    annotate("text", x = 0.5, y = 0.5, label = gene, size = 6, fontface = "bold") +
+    annotate("text", x = 0.5, y = 0.5, label = gene, size = 10, fontface = "bold") +
     theme_void()
 })
 gene_labels_row <- wrap_plots(gene_labels, ncol = length(genes))
@@ -166,7 +166,7 @@ gene_labels_row <- wrap_plots(gene_labels, ncol = length(genes))
 # ------------------------- #
 animal_labels <- lapply(animals, function(animal) {
   ggplot() +
-    annotate("text", x = 0.5, y = 0.5, label = animal, angle = 90, size = 6, fontface = "bold") +
+    annotate("text", x = 0.5, y = 0.5, label = animal, angle = 90, size = 10, fontface = "bold") +
     theme_void()
 })
 animal_labels_col <- wrap_plots(animal_labels, ncol = 1)
@@ -182,7 +182,7 @@ legend_plot <- FeaturePlot(
 ) +
 scale_color_gradientn(
   colors = c("lightgrey", "blue"),
-  name = "Expression",
+  name = "Transcription",
   limits = expr_range
 ) +
 theme(legend.position = "right")

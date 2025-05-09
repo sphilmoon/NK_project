@@ -66,7 +66,19 @@ cat("✅ Annotated sample identities\n")
 # ------------------------- #
 # UMAP Standardization
 # ------------------------- #
-# Ensure Total NK has UMAP with dims = 1:25, resolution = 0.3
+# Ensure Total NK has PCA and UMAP with dims = 1:25, resolution = 0.3
+if (!"pca" %in% names(totalNK@reductions) || is.null(totalNK@reductions$pca)) {
+  totalNK <- RunPCA(totalNK, npcs = 25)
+  cat("✅ Recalculated PCA for Total NK with 25 PCs\n")
+} else {
+  # Check if PCA has enough dimensions
+  pca_dims <- dim(totalNK@reductions$pca)[2]
+  if (pca_dims < 25) {
+    stop("❌ Total NK PCA has only ", pca_dims, " dimensions, but dims = 1:25 requires 25 dimensions")
+  }
+  cat("✅ Total NK PCA exists with ", pca_dims, " dimensions\n")
+}
+
 if (!"umap" %in% names(totalNK@reductions) || is.null(totalNK@reductions$umap)) {
   totalNK <- FindNeighbors(totalNK, dims = 1:25)
   totalNK <- FindClusters(totalNK, resolution = 0.3)
@@ -76,15 +88,23 @@ if (!"umap" %in% names(totalNK@reductions) || is.null(totalNK@reductions$umap)) 
   cat("✅ Total NK UMAP already exists, using existing coordinates\n")
 }
 
-# Extract Total NK UMAP coordinates as reference
-totalNK_umap <- Embeddings(totalNK, reduction = "umap")
+# Ensure NKp46+ and NKp46- have PCA
+if (!"pca" %in% names(nkp46_pos@reductions) || is.null(nkp46_pos@reductions$pca)) {
+  nkp46_pos <- RunPCA(nkp46_pos, npcs = 25)
+  cat("✅ Recalculated PCA for NKp46+\n")
+}
+if (!"pca" %in% names(nkp46_neg@reductions) || is.null(nkp46_neg@reductions$pca)) {
+  nkp46_neg <- RunPCA(nkp46_neg, npcs = 25)
+  cat("✅ Recalculated PCA for NKp46-\n")
+}
 
 # Map NKp46+ and NKp46- onto Total NK UMAP
 nkp46_pos <- FindNeighbors(nkp46_pos, dims = 1:25)
 nkp46_pos <- FindClusters(nkp46_pos, resolution = 0.3)
 nkp46_pos <- RunUMAP(nkp46_pos, dims = 1:25)
+anchors_pos <- FindTransferAnchors(reference = totalNK, query = nkp46_pos, dims = 1:25, reference.reduction = "pca")
 nkp46_pos <- MapQuery(
-  anchorset = FindTransferAnchors(reference = totalNK, query = nkp46_pos, dims = 1:25),
+  anchorset = anchors_pos,
   query = nkp46_pos,
   reference = totalNK,
   refdata = totalNK$seurat_clusters,
@@ -95,8 +115,9 @@ nkp46_pos <- MapQuery(
 nkp46_neg <- FindNeighbors(nkp46_neg, dims = 1:25)
 nkp46_neg <- FindClusters(nkp46_neg, resolution = 0.3)
 nkp46_neg <- RunUMAP(nkp46_neg, dims = 1:25)
+anchors_neg <- FindTransferAnchors(reference = totalNK, query = nkp46_neg, dims = 1:25, reference.reduction = "pca")
 nkp46_neg <- MapQuery(
-  anchorset = FindTransferAnchors(reference = totalNK, query = nkp46_neg, dims = 1:25),
+  anchorset = anchors_neg,
   query = nkp46_neg,
   reference = totalNK,
   refdata = totalNK$seurat_clusters,
