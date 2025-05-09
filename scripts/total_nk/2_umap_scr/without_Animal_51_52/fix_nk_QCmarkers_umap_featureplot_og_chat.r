@@ -185,7 +185,13 @@ scale_color_gradientn(
   name = "Transcription",
   limits = expr_range
 ) +
-theme(legend.position = "right")
+theme(
+  legend.position = "right",
+  legend.title = element_text(size = 14, face = "bold"),  # Increase title size
+  legend.text = element_text(size = 12),                 # Increase text size
+  legend.key.size = unit(1.5, "cm"),                     # Increase the color bar size
+  legend.key.width = unit(0.5, "cm")                     # Adjust width of the color bar
+)
 
 legend <- cowplot::get_legend(legend_plot)
 
@@ -203,7 +209,7 @@ grid_with_labels <- plot_grid(
 final_plot <- plot_grid(
   grid_with_labels, legend,
   ncol = 2,
-  rel_widths = c(1, 0.08)
+  rel_widths = c(1.2, 0.12)
 )
 
 # ------------------------- #
