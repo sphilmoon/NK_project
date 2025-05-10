@@ -1,3 +1,4 @@
+*.h5
 *.rds
 rawdata/nkp46_pos_neg/
 *.err
