@@ -4,6 +4,7 @@
 library(Seurat)
 library(ggplot2)
 library(cowplot)
+library(stringr)
 
 # ------------------------- #
 # Define Input and Output Paths
@@ -16,94 +17,171 @@ output_dir <- "/home/outputs/all_merged_TotalNK_nkp46/chat"
 all_merged_rds_dir <- file.path(output_dir, "rds")
 pdf_dir <- file.path(output_dir, "pdf")
 
-# Create output directories if they don't exist
 dir.create(all_merged_rds_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
 # ------------------------- #
 # Load Seurat Objects
 # ------------------------- #
+cat("📦 Loading Seurat objects...\n")
 nkp_neg <- readRDS(nkp_neg_rds)
+cat("✅ Loaded nkp46_neg\n")
 nkp_pos <- readRDS(nkp_pos_rds)
+cat("✅ Loaded nkp46_pos\n")
 totalNK <- readRDS(totalNK_rds)
+cat("✅ Loaded totalNK\n")
 
 # ------------------------- #
-# Define UMAP Plotting Function
+# Standardize Metadata
 # ------------------------- #
-plot_umap <- function(seurat_obj, condition_label, pdf_dir) {
-    # Ensure 'sample' metadata exists
-    if (!"sample" %in% colnames(seurat_obj@meta.data)) {
-        stop(paste0("The 'sample' metadata column is missing in ", condition_label, " object."))
-    }
+cat("🔧 Standardizing metadata (sample, sample_id, condition, animal_id)...\n")
 
-    # UMAP split by sample
-    umap_split <- DimPlot(seurat_obj, group.by = "sample", pt.size = 0.3, split.by = "sample") +
-        ggtitle(paste0("UMAP Split by Sample - ", condition_label)) +
-        theme(plot.title = element_text(hjust = 0.5))
-    ggsave(file.path(pdf_dir, paste0(condition_label, "_umap_split.pdf")), plot = umap_split, width = 10, height = 8, dpi = 600)
+for (obj_name in c("nkp_neg", "nkp_pos", "totalNK")) {
+    obj <- get(obj_name)
 
-    # UMAP combined clusters
-    umap_combined <- DimPlot(seurat_obj, group.by = "seurat_clusters", pt.size = 0.3) +
-        ggtitle(paste0("UMAP (Clusters) - ", condition_label)) +
-        theme(plot.title = element_text(hjust = 0.5))
-    ggsave(file.path(pdf_dir, paste0(condition_label, "_umap_combined.pdf")), plot = umap_combined, width = 10, height = 8, dpi = 600)
+    # Convert to title case
+    obj$sample <- str_to_title(obj$sample)
+
+    # Copy fields
+    obj$sample_id <- obj$sample
+    obj$animal_id <- obj$sample
+
+    # Set condition
+    obj$condition <- switch(obj_name,
+        "nkp_neg" = "nkp46_neg",
+        "nkp_pos" = "nkp46_pos",
+        "totalNK" = "totalNK"
+    )
+
+    assign(obj_name, obj)
+
+    # Verify
+    cat("🔍 Checking 'sample' field in ", obj_name, "\n")
+    print(colnames(obj@meta.data))
+    cat("✅ 'sample' values:\n")
+    print(head(obj$sample))
 }
 
-# ------------------------- #
-# Generate UMAPs for Each Condition
-# ------------------------- #
-plot_umap(nkp_neg, "nkp46_neg", pdf_dir)
-plot_umap(nkp_pos, "nkp46_pos", pdf_dir)
-plot_umap(totalNK, "totalNK", pdf_dir)
+# # diagnostic checks before the merge
+# cat("🔍 Previewing cell names from each object...\n")
+# cat("nkp_neg cell names example:\n")
+# print(head(colnames(nkp_neg)))
+# cat("nkp_pos cell names example:\n")
+# print(head(colnames(nkp_pos)))
+# cat("totalNK cell names example:\n")
+# print(head(colnames(totalNK)))
+
+# # Check for overlaps
+# overlap1 <- intersect(colnames(nkp_neg), colnames(nkp_pos))
+# overlap2 <- intersect(colnames(nkp_neg), colnames(totalNK))
+# overlap3 <- intersect(colnames(nkp_pos), colnames(totalNK))
+
+# cat("🔎 Number of overlapping cell names:\n")
+# cat("nkp_neg vs nkp_pos:", length(overlap1), "\n")
+# cat("nkp_neg vs totalNK:", length(overlap2), "\n")
+# cat("nkp_pos vs totalNK:", length(overlap3), "\n")
 
 # ------------------------- #
-# Merge All Three Conditions
+# Merge Seurat Objects
 # ------------------------- #
-# Add condition labels
-nkp_neg$condition <- "nkp46_neg"
-nkp_pos$condition <- "nkp46_pos"
-totalNK$condition <- "totalNK"
 
-# Merge Seurat objects
-merged_obj <- merge(nkp_neg, y = list(nkp_pos, totalNK), add.cell.ids = c("nkp46_neg", "nkp46_pos", "totalNK"))
+# ✅ Rename cells to avoid name collisions
+nkp_neg <- RenameCells(nkp_neg, add.cell.id = "nkp46neg")
+nkp_pos <- RenameCells(nkp_pos, add.cell.id = "nkp46pos")
+totalNK <- RenameCells(totalNK, add.cell.id = "totalNK")
+
+# removing SCTransform normalization separately.
+nkp_neg[["SCT"]] <- NULL
+nkp_pos[["SCT"]] <- NULL
+totalNK[["SCT"]] <- NULL
+
+# 🔗 Merge all three objects safely
+cat("🔗 Merging Seurat objects...\n")
+merged_obj <- merge(nkp_neg, y = list(nkp_pos, totalNK))
+
+
+DefaultAssay(merged_obj) <- "RNA"
+cat("✅ Merge complete: total cells =", ncol(merged_obj), "\n")
 
 # ------------------------- #
-# Re-normalize, Scale, and Cluster
+# Normalize, PCA, and Clustering
 # ------------------------- #
-# Normalize and scale data
-merged_obj <- NormalizeData(merged_obj)
-merged_obj <- FindVariableFeatures(merged_obj, selection.method = "vst", nfeatures = 2000)
-merged_obj <- ScaleData(merged_obj)
+cat("⚙️ Normalizing and scaling merged object...\n")
+merged_obj <- SCTransform(merged_obj, verbose = TRUE)
 
-# Perform PCA
+# merged_obj <- NormalizeData(merged_obj)
+# merged_obj <- FindVariableFeatures(merged_obj)
+# merged_obj <- ScaleData(merged_obj)
+
+cat("🔬 Running PCA...\n")
 merged_obj <- RunPCA(merged_obj, npcs = 50)
+cat("✅ PCA complete\n")
 
-# Generate and save ElbowPlot
+cat("📊 Saving ElbowPlot for dimensionality selection...\n")
 elbow_plot <- ElbowPlot(merged_obj, ndims = 50)
-ggsave(file.path(pdf_dir, "elbow_plot.pdf"), plot = elbow_plot, width = 8, height = 6, dpi = 600)
+ggsave(file.path(pdf_dir, "elbow_plot.pdf"), elbow_plot, width = 8, height = 6, dpi = 600)
 
-# Based on ElbowPlot, select number of PCs (e.g., 25)
 dims_to_use <- 1:25
 
-# Run UMAP and clustering
+cat("🧭 Running UMAP, neighbors, and clustering (dims 1:25, res 0.5)...\n")
 merged_obj <- RunUMAP(merged_obj, dims = dims_to_use)
 merged_obj <- FindNeighbors(merged_obj, dims = dims_to_use)
 merged_obj <- FindClusters(merged_obj, resolution = 0.5)
+cat("✅ UMAP and clustering complete\n")
 
-# Save merged Seurat object
-saveRDS(merged_obj, file = file.path(all_merged_rds_dir, "merged_totalNK_nkp46.rds"))
+saveRDS(merged_obj, file = file.path(all_merged_rds_dir, "merged_totalNK_nkp46_dim25_res0.5.rds"))
+cat("💾 Merged object saved\n")
 
 # ------------------------- #
-# Generate UMAP for Merged Object
+# UMAP by Condition
 # ------------------------- #
-# UMAP by condition
-umap_condition <- DimPlot(merged_obj, group.by = "condition", pt.size = 0.3) +
+cat("🎨 Generating combined UMAP by condition...\n")
+umap_by_condition <- DimPlot(merged_obj, group.by = "condition", pt.size = 0.3) +
     ggtitle("UMAP by Condition") +
     theme(plot.title = element_text(hjust = 0.5))
-ggsave(file.path(pdf_dir, "merged_umap_by_condition.pdf"), plot = umap_condition, width = 10, height = 8, dpi = 600)
 
-# UMAP by clusters
-umap_clusters <- DimPlot(merged_obj, group.by = "seurat_clusters", pt.size = 0.3) +
-    ggtitle("UMAP by Clusters") +
-    theme(plot.title = element_text(hjust = 0.5))
-ggsave(file.path(pdf_dir, "merged_umap_by_clusters.pdf"), plot = umap_clusters, width = 10, height = 8, dpi = 600)
+ggsave(file.path(pdf_dir, "UMAP_by_condition_combined.pdf"),
+    umap_by_condition,
+    width = 10, height = 8, dpi = 600
+)
+
+# ------------------------- #
+# UMAP Grid: Animal x Condition
+# ------------------------- #
+cat("🎨 Generating UMAP grid by animal x condition...\n")
+conditions <- c("nkp46_neg", "nkp46_pos", "totalNK")
+animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
+plot_list <- list()
+
+for (animal in animals) {
+    for (cond in conditions) {
+        cells <- WhichCells(merged_obj, expression = animal_id == animal & condition == cond)
+        cat(sprintf("🔍 Found %d cells for %s x %s\n", length(cells), animal, cond))
+
+        if (length(cells) == 0) {
+            cat("⚠️ No cells found for", animal, cond, "- skipping\n")
+            next
+        }
+
+        p <- DimPlot(merged_obj, cells = cells, group.by = "condition") +
+            ggtitle(paste(animal, cond)) +
+            theme_minimal() +
+            theme(
+                legend.position = "none",
+                plot.title = element_text(size = 10, hjust = 0.5),
+                axis.text = element_blank(),
+                axis.title = element_blank(),
+                axis.ticks = element_blank()
+            )
+        plot_list[[paste(animal, cond, sep = "_")]] <- p
+    }
+}
+
+cat("🧱 Assembling grid layout...\n")
+umap_grid <- plot_grid(plotlist = plot_list, ncol = length(conditions))
+ggsave(file.path(pdf_dir, "UMAP_animal_condition_grid.pdf"),
+    umap_grid,
+    width = 4 * length(conditions), height = 4 * length(animals), dpi = 600
+)
+
+cat("✅ All UMAP visualizations complete\n")
