@@ -168,7 +168,7 @@ umap_plot <- DimPlot(merged_obj, group.by = "sample_id", pt.size = 0.5) +
 # ------------------------- #
 # Save Plot
 # ------------------------- #
-output_file <- file.path(output_dir, "figures/combined_UMAP_TotalNK_NKp46_d25_res0.3.pdf")
+output_file <- file.path(output_dir, "figures/combined_UMAP_TotalNK_NKp46_d25_res0.3.png")
 ggsave(filename = output_file, plot = umap_plot, width = 10, height = 8, dpi = 600, bg = "transparent")
 cat("✅ Combined UMAP saved to", output_file, "\n")
 cat("🎉 UMAP generation complete. Outputs saved in:\n", output_dir, "\n")
