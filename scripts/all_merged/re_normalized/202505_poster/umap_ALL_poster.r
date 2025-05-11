@@ -217,7 +217,26 @@ names(condition_labels) <- conditions
 animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
 
 # Pastel tone color palette
-condition_colors <- c("nkp46_neg" = "#e9837a", "nkp46_pos" = "#98e190", "totalNK" = "#61c4db")
+condition_colors <- c("nkp46_neg" = "#e79088", "nkp46_pos" = "#91c58a", "totalNK" = "#79cadc")
+
+# ------------------------- #
+# UMAP by Condition
+# ------------------------- #
+cat("🎨 Generating combined UMAP by condition...\n")
+umap_by_condition <- DimPlot(merged_obj,
+    group.by = "condition", pt.size = 0.3,
+    cols = condition_colors, label = FALSE
+) +
+    scale_color_manual(values = condition_colors, labels = condition_labels, name = "Condition") +
+    ggtitle("UMAP by Condition") +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+
+ggsave(file.path(pdf_dir, "UMAP_by_condition_combined.png"),
+    umap_by_condition,
+    width = 10, height = 8, dpi = 600
+)
+cat("✅ UMAP by Condition grid saved with pastel color coding\n")
+
 
 # ------------------------- #
 # UMAP Grid: Animal × Condition
@@ -286,7 +305,7 @@ umap_labeled <- plot_grid(
 # ------------------------- #
 # Export
 # ------------------------- #
-ggsave(file.path(pdf_dir, "UMAP_grid_Animal_by_Condition_pastel.pdf"),
+ggsave(file.path(pdf_dir, "UMAP_grid_Animal_by_Condition_pastel.png"),
     umap_labeled,
     width = 12, height = 16, dpi = 600
 )
