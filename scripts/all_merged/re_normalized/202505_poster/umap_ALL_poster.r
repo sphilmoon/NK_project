@@ -168,7 +168,7 @@ for (cond in conditions) {
                 plot.title = element_text(hjust = 0.5, size = 10),
                 axis.text = element_blank(),
                 axis.title = element_blank(),
-                legend.position = "right"
+                legend.position = "none" # Remove individual legends
             )
     }
     ncr1_plots[[cond]] <- p
@@ -207,7 +207,7 @@ legend_plot <- FeaturePlot(
 legend <- cowplot::get_legend(legend_plot)
 
 # ------------------------- #
-# Assemble UMAP by Condition for NCR1 with Legend
+# Assemble UMAP by Condition for NCR1 with a Single Legend
 # ------------------------- #
 # Arrange plots with condition labels on top
 top_row_ncr1 <- wrap_plots(column_titles, ncol = length(conditions))
@@ -215,10 +215,11 @@ ncr1_combined <- wrap_plots(ncr1_plots, ncol = length(conditions))
 ncr1_labeled <- plot_grid(
     top_row_ncr1,
     ncr1_combined,
-    nrow = 2, rel_heights = c(0.1, 1)
+    nrow = 2,
+    rel_heights = c(0.1, 1)
 )
 
-# Add the legend to the right
+# Add the single legend to the right
 ncr1_final <- plot_grid(
     ncr1_labeled,
     legend,
@@ -226,13 +227,13 @@ ncr1_final <- plot_grid(
     rel_widths = c(1, 0.15)
 )
 
-# Export NCR1 UMAP by Condition with Legend
+# Export NCR1 UMAP by Condition with a Single Legend
 ggsave(file.path(pdf_dir, "UMAP_by_Condition_NCR1_expression.png"),
     ncr1_final,
     width = 16, height = 5, dpi = 600
 )
 
-cat("✅ UMAP by Condition for NCR1 expression saved with legend\n")
+cat("✅ UMAP by Condition for NCR1 expression saved with a single legend\n")
 
 # ------------------------- #
 # Assemble UMAP Grid for NCR1 Expression with Legend
