@@ -168,7 +168,7 @@ for (cond in conditions) {
                 plot.title = element_text(hjust = 0.5, size = 10),
                 axis.text = element_blank(),
                 axis.title = element_blank(),
-                legend.position = "none"
+                legend.position = "right"
             )
     }
     ncr1_plots[[cond]] <- p
@@ -193,7 +193,7 @@ legend_plot <- FeaturePlot(
 ) +
     scale_color_gradientn(
         colors = c("lightgrey", "blue"),
-        name = "NCR1 Expression",
+        name = "NCR1",
         limits = expr_range
     ) +
     theme(
