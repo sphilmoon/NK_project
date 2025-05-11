@@ -39,7 +39,7 @@ umap_by_condition <- DimPlot(merged_obj,
     cols = condition_colors, label = FALSE
 ) +
     scale_color_manual(values = condition_colors, labels = condition_labels) +
-    ggtitle("") +
+    ggtitle(NULL) +
     theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
 
 ggsave(file.path(pdf_dir, "UMAP_by_condition_combined.png"),
@@ -163,7 +163,7 @@ for (cond in conditions) {
             theme_void()
     } else {
         p <- FeaturePlot(merged_obj, features = "NCR1", cells = cells, pt.size = 0.3) +
-            ggtitle(condition_labels[cond]) +
+            ggtitle(NULL) +
             theme(
                 plot.title = element_text(hjust = 0.5, size = 10),
                 axis.text = element_blank(),
