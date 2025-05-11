@@ -187,8 +187,6 @@
 
 
 
-
-
 # ------------------------- #
 # Load Required Libraries
 # ------------------------- #
@@ -196,100 +194,101 @@ library(Seurat)
 library(ggplot2)
 library(cowplot)
 library(stringr)
+library(patchwork)
 
 # ------------------------- #
-# Define Paths
+# Define Input and Output Paths
 # ------------------------- #
 output_dir <- "/home/outputs/all_merged_TotalNK_nkp46/chat"
 all_merged_rds_dir <- file.path(output_dir, "rds")
 pdf_dir <- file.path(output_dir, "pdf")
-
-dir.create(all_merged_rds_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
 
-# Load merged Seurat object
-merged_rds_file <- file.path(all_merged_rds_dir, "merged_totalNK_nkp46_dim25_res0.5.rds")
-merged_obj <- readRDS(merged_rds_file)
+# Load the merged object
+merged_obj <- readRDS(file.path(all_merged_rds_dir, "merged_totalNK_nkp46_dim25_res0.5.rds"))
 
 # ------------------------- #
-# UMAP by Condition (One Panel)
+# Define Labels and Colors
 # ------------------------- #
-cat("🎨 Generating UMAP by condition...\n")
-condition_colors <- c(
-    "nkp46_neg" = "#E41A1C", # red
-    "nkp46_pos" = "#377EB8", # blue
-    "totalNK"   = "#4DAF4A" # green
-)
-
-umap_by_condition <- DimPlot(
-    merged_obj,
-    group.by = "condition",
-    pt.size = 0.3,
-    cols = condition_colors
-) +
-    ggtitle("UMAP by Condition") +
-    theme(plot.title = element_text(hjust = 0.5))
-
-ggsave(file.path(pdf_dir, "UMAP_by_condition_combined.png"),
-    umap_by_condition,
-    width = 10, height = 8, dpi = 900
-)
-
-# ------------------------- #
-# UMAP Grid: Animal x Condition
-# ------------------------- #
-cat("🎨 Generating UMAP grid by animal x condition...\n")
 conditions <- c("nkp46_neg", "nkp46_pos", "totalNK")
+condition_labels <- c("NKp46-", "NKp46+", "Total NK")
+names(condition_labels) <- conditions
+
 animals <- c("Animal25", "Animal26", "Animal27", "Animal28")
 
-# Store plots in matrix layout
-plot_matrix <- list()
+# Pastel tone color palette
+condition_colors <- c("nkp46_neg" = "#e9837a", "nkp46_pos" = "#98e190", "totalNK" = "#61c4db")
+
+# ------------------------- #
+# UMAP Grid: Animal × Condition
+# ------------------------- #
+plot_list <- list()
 
 for (animal in animals) {
-    row_plots <- list()
     for (cond in conditions) {
         cells <- WhichCells(merged_obj, expression = animal_id == animal & condition == cond)
-        cat(sprintf("🔍 %s x %s: %d cells\n", animal, cond, length(cells)))
+        cat(sprintf("🔍 Found %d cells for %s x %s\n", length(cells), animal, cond))
 
         if (length(cells) == 0) {
-            row_plots[[cond]] <- ggplot() +
+            cat("⚠️ No cells found for", animal, cond, "- skipping\n")
+            p <- ggplot() +
                 theme_void()
-            next
+        } else {
+            p <- DimPlot(merged_obj, cells = cells, group.by = "condition", cols = condition_colors) +
+                ggtitle(NULL) +
+                theme_void() +
+                theme(legend.position = "none")
         }
 
-        p <- DimPlot(merged_obj, cells = cells, group.by = "condition", cols = condition_colors) +
-            ggtitle("") +
-            theme_void() +
-            theme(
-                legend.position = "none",
-                plot.margin = margin(2, 2, 2, 2)
-            )
-        row_plots[[cond]] <- p
+        plot_list[[paste(animal, cond, sep = "_")]] <- p
     }
-    plot_matrix[[animal]] <- row_plots
 }
 
-# Combine into grid: top = condition labels
-column_titles <- lapply(conditions, function(label) {
-    ggdraw() + draw_label(label, fontface = "bold", hjust = 0.5)
+# ------------------------- #
+# Add Column Labels (Condition Names)
+# ------------------------- #
+column_titles <- lapply(condition_labels, function(label) {
+    ggplot() +
+        annotate("text", x = 0.5, y = 0.5, label = label, size = 6, fontface = "bold") +
+        theme_void()
 })
+top_row <- wrap_plots(column_titles, ncol = length(conditions))
 
-# Convert to rows of plots
-grid_rows <- lapply(plot_matrix, function(row_plots) plot_grid(plotlist = row_plots, nrow = 1))
+# ------------------------- #
+# Add Row Labels (Animal IDs)
+# ------------------------- #
+row_titles <- lapply(animals, function(animal) {
+    ggplot() +
+        annotate("text", x = 0.5, y = 0.5, label = animal, angle = 90, size = 6, fontface = "bold") +
+        theme_void()
+})
+left_col <- wrap_plots(row_titles, ncol = 1)
 
-# Assemble full layout
-full_umap_grid <- plot_grid(
-    plot_grid(plotlist = column_titles, nrow = 1),
-    plot_grid(plotlist = grid_rows, ncol = 1),
-    ncol = 1,
-    rel_heights = c(0.05, 1)
+# ------------------------- #
+# Assemble UMAP Grid
+# ------------------------- #
+# Arrange plots in a matrix: rows = animals, cols = conditions
+umap_matrix <- lapply(animals, function(animal) {
+    plots_row <- lapply(conditions, function(cond) {
+        plot_list[[paste(animal, cond, sep = "_")]]
+    })
+    wrap_plots(plots_row, ncol = length(conditions))
+})
+umap_full <- wrap_plots(umap_matrix, ncol = 1)
+
+# Add labels: top (column), left (row)
+umap_labeled <- plot_grid(
+    plot_grid(NULL, top_row, ncol = 2, rel_widths = c(0.12, 1)),
+    plot_grid(left_col, umap_full, ncol = 2, rel_widths = c(0.12, 1)),
+    nrow = 2, rel_heights = c(0.08, 1)
 )
 
-ggsave(file.path(pdf_dir, "UMAP_animal_condition_grid_labeled.png"),
-    full_umap_grid,
-    width = 4 * length(conditions),
-    height = 4 * length(animals),
-    dpi = 900
+# ------------------------- #
+# Export
+# ------------------------- #
+ggsave(file.path(pdf_dir, "UMAP_grid_Animal_by_Condition_pastel.pdf"),
+    umap_labeled,
+    width = 12, height = 16, dpi = 600
 )
 
-cat("✅ All UMAP visualizations complete\n")
+cat("✅ UMAP Animal × Condition grid saved with pastel color coding\n")
