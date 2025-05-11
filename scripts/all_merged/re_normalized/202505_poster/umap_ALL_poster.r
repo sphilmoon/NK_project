@@ -228,7 +228,8 @@ umap_by_condition <- DimPlot(merged_obj,
     cols = condition_colors, label = FALSE
 ) +
     scale_color_manual(values = condition_colors, labels = condition_labels) +
-    theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+    ggtitle("")
+theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
 
 ggsave(file.path(pdf_dir, "UMAP_by_condition_combined.png"),
     umap_by_condition,
