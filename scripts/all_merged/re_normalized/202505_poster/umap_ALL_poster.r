@@ -228,8 +228,8 @@ umap_by_condition <- DimPlot(merged_obj,
     cols = condition_colors, label = FALSE
 ) +
     scale_color_manual(values = condition_colors, labels = condition_labels) +
-    ggtitle("")
-theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
+    ggtitle("") +
+    theme(plot.title = element_text(hjust = 0.5), legend.position = "right")
 
 ggsave(file.path(pdf_dir, "UMAP_by_condition_combined.png"),
     umap_by_condition,
@@ -311,3 +311,62 @@ ggsave(file.path(pdf_dir, "UMAP_grid_Animal_by_Condition_pastel.png"),
 )
 
 cat("✅ UMAP Animal × Condition grid saved with pastel color coding\n")
+
+
+
+
+
+
+# ------------------------- #
+# UMAP Grid: Animal × Condition for NCR1 Gene Expression
+# ------------------------- #
+plot_list_ncr1 <- list()
+
+for (animal in animals) {
+    for (cond in conditions) {
+        cells <- WhichCells(merged_obj, expression = animal_id == animal & condition == cond)
+        cat(sprintf("🔍 Found %d cells for %s x %s (NCR1 plot)\n", length(cells), animal, cond))
+
+        if (length(cells) == 0) {
+            cat("⚠️ No cells found for", animal, cond, "- skipping\n")
+            p <- ggplot() +
+                theme_void()
+        } else {
+            p <- FeaturePlot(merged_obj, features = "NCR1", cells = cells, pt.size = 0.3) +
+                ggtitle(NULL) +
+                theme_void() +
+                theme(legend.position = "none")
+        }
+
+        plot_list_ncr1[[paste(animal, cond, sep = "_")]] <- p
+    }
+}
+
+# ------------------------- #
+# Assemble UMAP Grid for NCR1 Expression
+# ------------------------- #
+# Arrange plots in a matrix: rows = animals, cols = conditions
+umap_matrix_ncr1 <- lapply(animals, function(animal) {
+    plots_row <- lapply(conditions, function(cond) {
+        plot_list_ncr1[[paste(animal, cond, sep = "_")]]
+    })
+    wrap_plots(plots_row, ncol = length(conditions))
+})
+umap_full_ncr1 <- wrap_plots(umap_matrix_ncr1, ncol = 1)
+
+# Add labels: top (column), left (row)
+umap_labeled_ncr1 <- plot_grid(
+    plot_grid(NULL, top_row, ncol = 2, rel_widths = c(0.12, 1)),
+    plot_grid(left_col, umap_full_ncr1, ncol = 2, rel_widths = c(0.12, 1)),
+    nrow = 2, rel_heights = c(0.08, 1)
+)
+
+# ------------------------- #
+# Export NCR1 UMAP Grid
+# ------------------------- #
+ggsave(file.path(pdf_dir, "UMAP_grid_Animal_by_Condition_NCR1_expression.png"),
+    umap_labeled_ncr1,
+    width = 12, height = 16, dpi = 600
+)
+
+cat("✅ UMAP Animal × Condition grid for NCR1 expression saved\n")
