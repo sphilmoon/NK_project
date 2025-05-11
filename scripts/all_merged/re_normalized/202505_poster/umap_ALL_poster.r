@@ -253,12 +253,12 @@ umap_labeled_ncr1 <- plot_grid(
     nrow = 2, rel_heights = c(0.08, 1)
 )
 
-# Add the legend below the grid
+# Add the legend to the right of the grid
 umap_final_ncr1 <- plot_grid(
     umap_labeled_ncr1,
     legend,
-    nrow = 2,
-    rel_heights = c(1, 0.1)
+    ncol = 2,
+    rel_widths = c(1, 0.15)
 )
 
 # ------------------------- #
@@ -266,7 +266,7 @@ umap_final_ncr1 <- plot_grid(
 # ------------------------- #
 ggsave(file.path(pdf_dir, "UMAP_grid_Animal_by_Condition_NCR1_expression.png"),
     umap_final_ncr1,
-    width = 12, height = 18, dpi = 600
+    width = 14, height = 16, dpi = 600
 )
 
-cat("✅ UMAP Animal × Condition grid for NCR1 expression saved with legend\n")
+cat("✅ UMAP Animal × Condition grid for NCR1 expression saved with legend on the right\n")
