@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=dims_test                  # Job name
+#SBATCH --job-name=dge_test                 # Job name
 #SBATCH --nodes=1                           # Number of nodes
 #SBATCH --output=seurat_%j.out              # Output log file (%j = job ID)
 #SBATCH --error=seurat_%j.err               # Error log file
@@ -14,7 +14,7 @@ module load docker
 # define paths
 HOST_DATA_DIR="/mnt/lustre/RDS-live/moon/ephemeral/NK_project"
 CONTAINER_DATA_DIR="/home"
-R_SCRIPT="/scripts/all_merged/re_normalized/20250531/1_qc_dims_res_test.r"
+R_SCRIPT="/scripts/all_merged/re_normalized/20250531/3_dge.r"
 
 # run the docker container with the R script with chat gpt.
 docker run --rm \
