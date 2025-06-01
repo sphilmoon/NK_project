@@ -6,6 +6,6 @@ rawdata/nkp46_pos_neg/
 outputs/nkp46_outputs/dotplot_pdf
 outputs/all_merged_TotalNK_nkp46/rds/
 outputs/all_merged_TotalNK_nkp46/chat/
-outputs/all_merged_TotalNK_nkp46/re_normalized/
+# outputs/all_merged_TotalNK_nkp46/re_normalized/
 outputs/all_merged_TotalNK_nkp46/old/
 outputs/totalNK_outputs/2_umap/wo_51_52/csv/metadata_with_genes_dims25_res0.3.csv
