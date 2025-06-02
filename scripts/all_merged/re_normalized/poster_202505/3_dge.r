@@ -66,7 +66,7 @@ markers <- FindAllMarkers(
 )
 
 # Save full marker table only if non-empty
-dge_path <- file.path(dge_dir, "merged_cluster_markers.tsv")
+dge_path <- file.path(dge_dir, "merged_cluster_markers2.tsv")
 
 if (nrow(markers) > 0) {
     write.table(markers, dge_path, sep = "\t", quote = FALSE, row.names = FALSE)
@@ -75,28 +75,35 @@ if (nrow(markers) > 0) {
     cat("⚠️ No DGE markers were identified. Skipping save.\n")
 }
 
+saveRDS <- file.path(rds_dir, "merged_cluster_dim25_res0.5_dge_markers.rds")
+cat ("💾 Saving DGE markers to:", saveRDS, "\n")
+
 # ------------------------- #
-# Export Top Markers Per Cluster (if any)
+# Export Top 20 Markers Per Cluster & Plot Heatmap
 # ------------------------- #
-if ("cluster" %in% colnames(markers)) {
-    top_markers <- markers %>%
-        group_by(cluster) %>%
-        top_n(n = 3, wt = avg_log2FC)
-
-    cat("🔍 Top markers per cluster:\n")
-    print(top_markers)
-
-    # Heatmap
-    top_genes <- unique(top_markers$gene)
-    heatmap_plot <- DoHeatmap(merged_obj, features = top_genes, group.by = "seurat_clusters") +
-        ggtitle("Top Cluster Marker Heatmap")
-
-    ggsave(
-        filename = file.path(pdf_dir, "heatmap_top_cluster_markers.pdf"),
-        plot = heatmap_plot,
-        width = 12, height = 10, dpi = 600
-    )
-    cat("✅ Heatmap saved to:", file.path(pdf_dir, "heatmap_top_cluster_markers.pdf"), "\n")
+if (all(c("cluster", "gene") %in% colnames(markers))) {
+ library(dplyr)
+ # Get top 20 markers by log2FC per cluster
+ top_markers <- markers %>%
+   group_by(cluster) %>%
+   slice_max(n = 20, order_by = avg_log2FC)
+ cat("🔍 Top 20 markers per cluster:\n")
+ print(top_markers)
+ # Extract unique genes
+ top_genes <- unique(top_markers$gene)
+ # Generate heatmap
+ heatmap_plot <- DoHeatmap(merged_obj, features = top_genes, group.by = "seurat_clusters") +
+   ggtitle("Top 20 Markers per Cluster Heatmap")
+ # Save heatmap
+ heatmap_file <- file.path(pdf_dir, "heatmap_top20_cluster_markers.pdf")
+ ggsave(
+   filename = heatmap_file,
+   plot = heatmap_plot,
+   width = 12,
+   height = 16,  # increased height to accommodate more genes
+   dpi = 600
+ )
+ cat("✅ Heatmap saved to:", heatmap_file, "\n")
 } else {
-    cat("⚠️ No top markers to display or cluster column missing.\n")
+ cat("⚠️ No top markers to display or required columns missing in marker table.\n")
 }

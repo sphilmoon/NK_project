@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=dge_wo13                # Job name
+#SBATCH --job-name=heatmap_dge                  # Job name
 #SBATCH --nodes=1                           # Number of nodes
 #SBATCH --output=seurat_%j.out              # Output log file (%j = job ID)
 #SBATCH --error=seurat_%j.err               # Error log file
@@ -14,7 +14,7 @@ module load docker
 # define paths
 HOST_DATA_DIR="/mnt/lustre/RDS-live/moon/ephemeral/NK_project"
 CONTAINER_DATA_DIR="/home"
-R_SCRIPT="/scripts/total_nk/3_gex_scr/wo_51_52_scr/gex_chat_wo_cluster13.r"
+R_SCRIPT="/scripts/total_nk/3_gex_scr/wo_51_52_scr/sct_gex.r"
 
 # run the docker container with the R script with chat gpt.
 docker run --rm \
