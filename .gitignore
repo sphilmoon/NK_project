@@ -8,6 +8,7 @@ outputs/all_merged_TotalNK_nkp46/rds/
 outputs/all_merged_TotalNK_nkp46/chat/
 
 outputs/all_merged_TotalNK_nkp46/old/rds
+outputs/nkp46_outputs/grok
 # outputs/all_merged_TotalNK_nkp46/old
 
 # outputs/all_merged_TotalNK_nkp46/re_normalized/
