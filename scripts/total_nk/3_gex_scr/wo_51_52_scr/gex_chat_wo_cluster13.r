@@ -44,6 +44,8 @@ cat("✅ Default assay set to", DefaultAssay(seurat_obj), "\n")
 # Check if 'seurat_clusters' exists
 colnames(seurat_obj@meta.data)
 head(seurat_obj@meta.data$seurat_clusters)
+# table(seurat_obj$orig.ident)
+# table(seurat_obj$sample_id)
 
 grep("res", colnames(seurat_obj@meta.data), value = TRUE)
 seurat_obj$seurat_clusters <- seurat_obj$integrated_snn_res.0.3
@@ -74,8 +76,7 @@ if ("13" %in% clusters) {
 }
 
 
-# table(seurat_obj$orig.ident)
-# table(seurat_obj$sample_id)
+
 
 # ------------------------- #
 # Prepare SCT Model for DGE

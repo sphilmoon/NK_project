@@ -23,6 +23,9 @@ for (dir in list(pdf_dir, dge_dir, rds_dir)) {
 # ------------------------- #
 merged_obj <- readRDS("/home/outputs/totalNK_outputs/2_umap/wo_51_52/rds/integrated_data_dims25_res0.3_genecounts.rds")
 
+# table(merged_obj$orig.ident)
+# table(merged_obj$sample_id)
+
 # ------------------------- #
 # Step 2: Split by Sample
 # ------------------------- #
@@ -49,6 +52,23 @@ seurat_obj <- FindNeighbors(seurat_obj, dims = 1:25)
 seurat_obj <- FindClusters(seurat_obj, resolution = 0.3)
 # Store cluster identities
 seurat_obj$seurat_clusters <- Idents(seurat_obj)
+
+
+
+genes_to_check <- c("CD1D", "TCRbeta", "CD3E", "CD3D", "CD3G", "TRDC", "TRBC1", "TRBC2")
+# Check presence
+present_genes <- genes_to_check[genes_to_check %in% rownames(seurat_obj)]
+# Report results
+if (length(present_genes) > 0) {
+ cat("✅ Found genes in dataset:", paste(present_genes, collapse = ", "), "\n")
+} else {
+ cat("❌ None of the specified genes were found in the dataset.\n")
+}
+
+
+
+
+
 
 # ------------------------- #
 # Generate and Save UMAP Plot
