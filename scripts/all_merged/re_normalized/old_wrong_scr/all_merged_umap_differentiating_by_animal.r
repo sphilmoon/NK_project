@@ -6,12 +6,11 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 library(Matrix)
+library(patchwork)
 
 # ------------------------- #
 # Define Paths and Configs
 # ------------------------- #
-totalNK_rds <- "/home/outputs/totalNK_outputs/2_umap/wo_51_52/rds/integrated_data_dims25_res0.3_genecounts.rds"
-nkp46_rds <- "/home/outputs/nkp46_outputs/nkp46_integrated_data.rds"
 output_dir <- "/home/outputs/all_merged_TotalNK_nkp46"
 
 rds_dir <- file.path(output_dir, "old/rds")
@@ -35,6 +34,45 @@ animal_ids <- unique(merged_obj$animal)
 cat("Sample IDs in merged object:", paste(sample_ids, collapse = ", "), "\n")
 cat("Animal IDs in merged object:", paste(animal_ids, collapse = ", "), "\n")   
 
+# ------------------------- #
+# Run PCA with Consistent Dims
+# ------------------------- #
+merged_obj <- RunPCA(merged_obj, npcs = 25)
+cat("✅ Ran PCA with 25 dimensions\n")
+
+# ------------------------- #
+# Cluster and UMAP with Consistent Resolution
+# ------------------------- #
+merged_obj <- FindNeighbors(merged_obj, dims = 1:25)
+merged_obj <- FindClusters(merged_obj, resolution = 0.5)
+merged_obj <- RunUMAP(merged_obj, dims = 1:25)
+cat("✅ Ran clustering and UMAP with resolution 0.5\n")
+
+
+saveRDS (merged_obj, file = file.path(rds_dir, "all_totalNK_nkp46_d25_res0.5_20250531.rds"))
+cat("✅ Saved updated merged Seurat object with PCA, clustering, and UMAP\n")
+
+# Ensure animal is a factor with NA removed
+merged_obj$animal <- as.factor(merged_obj$animal)
+# Get list of sample IDs
+sample_ids <- unique(merged_obj$sample_id)
+# Generate a named list of plots for each sample_id
+umap_list <- lapply(sample_ids, function(sid) {
+ # Subset object
+ obj_sub <- subset(merged_obj, subset = sample_id == sid & !is.na(animal))
+ # Plot UMAP colored by animal
+ DimPlot(obj_sub, group.by = "animal", reduction = "umap") +
+   ggtitle(paste("Sample:", sid)) +
+   theme(plot.title = element_text(hjust = 0.5))
+})
+# Combine plots using patchwork
+combined_plot <- wrap_plots(umap_list, ncol = 1)
+combined_plot
+
+# Save the combined plot
+output_file <- file.path(pdf_dir, "combined_umap_by_animal.pdf")
+ggsave(filename = output_file, plot = combined_plot, width = 10, height = 15, dpi = 600, bg = "transparent")
+cat("✅ Combined UMAP by animal saved to", output_file, "\n")
 
 
 
@@ -104,6 +142,8 @@ cat("🎉 UMAP generation complete. Outputs saved in:\n", output_dir, "\n")
 
 
 
+
+
 here is my metadata information: 
 > sample_ids <- unique(merged_obj$sample_id)
 ids <- unique(merged_obj$animal)> animal_ids <- unique(merged_obj$animal)
@@ -117,30 +157,4 @@ you can generate three different umap plots, one for each animal, and then combi
 
 
 
-
-
-
-library(ggplot2)
-library(patchwork)
-# Ensure animal is a factor with NA removed
-merged_obj$animal <- as.factor(merged_obj$animal)
-# Get list of sample IDs
-sample_ids <- unique(merged_obj$sample_id)
-# Generate a named list of plots for each sample_id
-umap_list <- lapply(sample_ids, function(sid) {
- # Subset object
- obj_sub <- subset(merged_obj, subset = sample_id == sid & !is.na(animal))
- # Plot UMAP colored by animal
- DimPlot(obj_sub, group.by = "animal", reduction = "umap") +
-   ggtitle(paste("Sample:", sid)) +
-   theme(plot.title = element_text(hjust = 0.5))
-})
-# Combine plots using patchwork
-combined_plot <- wrap_plots(umap_list, ncol = 1)
-combined_plot
-
-# Save the combined plot
-output_file <- file.path(pdf_dir, "combined_umap_by_animal.pdf")
-ggsave(filename = output_file, plot = combined_plot, width = 10, height = 15, dpi = 600, bg = "transparent")
-cat("✅ Combined UMAP by animal saved to", output_file, "\n")
 
