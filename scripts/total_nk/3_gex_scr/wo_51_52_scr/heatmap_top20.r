@@ -7,8 +7,10 @@ library(ggplot2)
 # ------------------------- #
 # Load Top Markers Table using base R
 # ------------------------- #
-top20_file <- "/home/outputs/totalNK_outputs/3_gex/wo_51_52/top20_markers_per_cluster.csv"
-top_markers <- read.csv(top20_file, stringsAsFactors = FALSE)
+top10_file <- "/home/scripts/total_nk/3_gex_scr/wo_51_52_scr/top10dge.csv"
+
+# top10_file <- "/home/outputs/totalNK_outputs/3_gex/wo_51_52/top10_markers_per_cluster.csv"
+top_markers <- read.csv(top10_file, stringsAsFactors = FALSE)
 # ------------------------- #
 # Extract Unique Gene Names
 # ------------------------- #
@@ -29,12 +31,12 @@ heatmap_plot <- DoHeatmap(
  features = top_genes,
  group.by = "seurat_clusters"
 ) +
- ggtitle("Top 20 DE Markers per Cluster") +
+ ggtitle("Top 10 DEG per cluster") +
  theme(plot.title = element_text(hjust = 0.5))
 # ------------------------- #
 # Save Heatmap to PDF
 # ------------------------- #
-heatmap_file <- "/home/outputs/totalNK_outputs/3_gex/wo_51_52/pdf/heatmap_top20_cluster_markers.pdf"
+heatmap_file <- "/home/outputs/totalNK_outputs/3_gex/wo_51_52/pdf/heatmap_top10_cluster_markers.pdf"
 ggsave(
  filename = heatmap_file,
  plot = heatmap_plot,
