@@ -147,26 +147,26 @@ cat("✅ QC'ed Seurat objects saved.\n")
 # cat("✅ JackStraw plots saved.\n")
 
 
-# ------------------------- #
-# Elbow Plot for Each Animal
-# ------------------------- #
-cat("📊 Generating elbow plots...\n")
-elbow_plots <- list()
+# # ------------------------- #
+# # Elbow Plot for Each Animal
+# # ------------------------- #
+# cat("📊 Generating elbow plots...\n")
+# elbow_plots <- list()
 
-for (animal in names(seurat_objects)) {
-  seurat_obj <- seurat_objects[[animal]]
-  DefaultAssay(seurat_obj) <- "SCT"
-  seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
-  elbow_plots[[animal]] <- ElbowPlot(seurat_obj, ndims = 30) + 
-    ggtitle(paste("Elbow Plot -", animal)) +
-    theme(plot.title = element_text(hjust = 0.5, size = 12))
-}
+# for (animal in names(seurat_objects)) {
+#   seurat_obj <- seurat_objects[[animal]]
+#   DefaultAssay(seurat_obj) <- "SCT"
+#   seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
+#   elbow_plots[[animal]] <- ElbowPlot(seurat_obj, ndims = 30) + 
+#     ggtitle(paste("Elbow Plot -", animal)) +
+#     theme(plot.title = element_text(hjust = 0.5, size = 12))
+# }
 
-# Combine and save elbow plots
-pdf(file.path(pdf_output_dir, "elbow_plots_totalNK_each_animals_20250616.pdf"), width = 10, height = 8, onefile = TRUE)
-print(wrap_plots(elbow_plots, ncol = 2))
-dev.off()
-cat("✅ Elbow plots saved to PDF.\n")
+# # Combine and save elbow plots
+# pdf(file.path(pdf_output_dir, "elbow_plots_totalNK_each_animals_20250616.pdf"), width = 10, height = 8, onefile = TRUE)
+# print(wrap_plots(elbow_plots, ncol = 2))
+# dev.off()
+# cat("✅ Elbow plots saved to PDF.\n")
 
 # ------------------------- #
 # UMAP & Clustering Per Animal (combined PDF per dim+res)
@@ -174,110 +174,151 @@ cat("✅ Elbow plots saved to PDF.\n")
 dims_list <- c(10, 15, 20, 25, 30)
 resolutions <- c(0.25, 0.5, 0.75)
 
-# for (dim in dims_list) {
-#   dims_to_use <- 1:dim
-#   for (res in resolutions) {
-#     plot_list <- list()
+for (dim in dims_list) {
+  dims_to_use <- 1:dim
+  for (res in resolutions) {
+    plot_list <- list()
 
-#     for (animal in names(seurat_objects)) {
-#       cat("📌 Processing:", animal, "dims:", dim, "res:", res, "\n")
-#       seurat_obj <- seurat_objects[[animal]]
-#       DefaultAssay(seurat_obj) <- "SCT"
-#       seurat_obj <- ScaleData(seurat_obj)
-#       seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
-#       seurat_obj <- RunUMAP(seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
-#       seurat_obj <- FindNeighbors(seurat_obj, dims = dims_to_use)
-#       seurat_obj <- FindClusters(seurat_obj, resolution = res)
+    for (animal in names(seurat_objects)) {
+      cat("📌 Processing:", animal, "dims:", dim, "res:", res, "\n")
+      seurat_obj <- seurat_objects[[animal]]
+      DefaultAssay(seurat_obj) <- "SCT"
+      seurat_obj <- ScaleData(seurat_obj)
+      seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
+      seurat_obj <- RunUMAP(seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
+      seurat_obj <- FindNeighbors(seurat_obj, dims = dims_to_use)
+      seurat_obj <- FindClusters(seurat_obj, resolution = res)
 
-#       # Store updated object back
-#       seurat_objects[[animal]] <- seurat_obj
+      # Store updated object back
+      seurat_objects[[animal]] <- seurat_obj
 
-#       # Generate UMAP plot
-#       p <- DimPlot(
-#         seurat_obj,
-#         reduction = paste0("umap_dims", dim),
-#         group.by = "seurat_clusters",
-#         label = TRUE,
-#         pt.size = 0.3,
-#         repel = TRUE
-#       ) +
-#         ggtitle(paste("UMAP:", animal, "dims =", dim, "res =", res)) +
-#         theme(plot.title = element_text(hjust = 0.5)) +
-#         scale_color_viridis_d(option = "turbo")
+      # Generate UMAP plot
+      p <- DimPlot(
+        seurat_obj,
+        reduction = paste0("umap_dims", dim),
+        group.by = "seurat_clusters",
+        label = TRUE,
+        pt.size = 0.3,
+        repel = TRUE
+      ) +
+        ggtitle(paste("UMAP:", animal, "dims =", dim, "res =", res)) +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        scale_color_viridis_d(option = "turbo")
 
-#         plot_list[[animal]] <- p
-#     }
+        plot_list[[animal]] <- p
+    }
 
-#     # Combine plots for current dims+res
-#     combined_plot <- wrap_plots(plot_list, ncol = 2)
-#     pdf_name <- file.path(pdf_output_dir, paste0("combined_umap_dims", dim, "_res", res, "_20250616.pdf"))
-#     ggsave(
-#       filename = pdf_name,
-#       plot = combined_plot,
-#       width = 12,
-#       height = 10,
-#       dpi = 600
-#     )
-#     cat("✅ Saved:", pdf_name, "\n")
-#   }
-# }
-
-
-# ------------------------- #
-# Merge and Integrate All Animals
-# ------------------------- #
-cat("🔗 Integrating all animals...\n")
-features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000)
-seurat_objects <- PrepSCTIntegration(object.list = seurat_objects, anchor.features = features)
-anchors <- FindIntegrationAnchors(object.list = seurat_objects, normalization.method = "SCT", anchor.features = features)
-merged_seurat_obj <- IntegrateData(anchorset = anchors, normalization.method = "SCT")
-# Save merged object
-merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
-saveRDS(merged_seurat_obj, merged_rds)
-cat("✅ Merged Seurat object saved to", merged_rds, "\n")
+    # Combine plots for current dims+res
+    combined_plot <- wrap_plots(plot_list, ncol = 2)
+    pdf_name <- file.path(pdf_output_dir, paste0("combined_umap_dims", dim, "_res", res, "_20250616.pdf"))
+    ggsave(
+      filename = pdf_name,
+      plot = combined_plot,
+      width = 12,
+      height = 10,
+      dpi = 600
+    )
+    cat("✅ Saved:", pdf_name, "\n")
+  }
+}
 
 
 # ------------------------- #
-# UMAP & Clustering on Merged Data (Combined PDF per dims)
+# Track Cluster Cell Counts
 # ------------------------- #
-DefaultAssay(merged_seurat_obj) <- "integrated"
-merged_seurat_obj <- ScaleData(merged_seurat_obj, verbose = FALSE)
-merged_seurat_obj <- RunPCA(merged_seurat_obj, npcs = max(dims_list))  # ensure enough PCs
+cluster_summary <- data.frame()
 
 for (dim in dims_list) {
   dims_to_use <- 1:dim
-  merged_seurat_obj <- RunUMAP(merged_seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
-
-  umap_plots <- list()
   for (res in resolutions) {
-    merged_seurat_obj <- FindNeighbors(merged_seurat_obj, dims = dims_to_use)
-    merged_seurat_obj <- FindClusters(merged_seurat_obj, resolution = res)
+    for (animal in names(seurat_objects)) {
+      cat("📊 Counting cells for", animal, "dims =", dim, "res =", res, "\n")
 
-    p <- DimPlot(
-      merged_seurat_obj,
-      reduction = paste0("umap_dims", dim),
-      group.by = "seurat_clusters",
-      label = TRUE,
-      pt.size = 0.3,
-      repel = TRUE
-    ) +
-      ggtitle(paste("Merged UMAP - dims =", dim, "res =", res)) +
-      theme(plot.title = element_text(hjust = 0.5)) +
-      scale_color_brewer(palette = "magma")
+      obj <- seurat_objects[[animal]]
+      DefaultAssay(obj) <- "SCT"
+      obj <- ScaleData(obj)
+      obj <- RunPCA(obj, verbose = FALSE)
+      obj <- RunUMAP(obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
+      obj <- FindNeighbors(obj, dims = dims_to_use)
+      obj <- FindClusters(obj, resolution = res)
 
-    umap_plots[[paste0("res_", res)]] <- p
+      seurat_objects[[animal]] <- obj  # update stored object
+
+      cluster_table <- table(Idents(obj))
+      df <- data.frame(
+        animal = animal,
+        dims = dim,
+        resolution = res,
+        cluster = as.integer(names(cluster_table)),
+        cell_count = as.vector(cluster_table)
+      )
+
+      cluster_summary <- rbind(cluster_summary, df)
+    }
   }
-
-  # Combine all resolution plots for this dim into one PDF
-  combined_pdf <- wrap_plots(umap_plots, ncol = 2)
-  pdf_path <- file.path(pdf_output_dir, paste0("merged_umap_dims", dim, "_multiRes_20250616.pdf"))
-
-  ggsave(
-    filename = pdf_path,
-    plot = combined_pdf,
-    width = 12,
-    height = 4 * ceiling(length(umap_plots) / 2),
-    dpi = 600
-  )
-  cat("✅ Merged multi-resolution UMAP saved:", pdf_path, "\n")
 }
+
+# Save as CSV
+csv_path <- file.path(tsv_output_dir, "cluster_cell_counts_summary.csv")
+write.csv(cluster_summary, csv_path, row.names = FALSE)
+cat("✅ Cluster cell count summary saved to:", csv_path, "\n")
+
+
+# # ------------------------- #
+# # Merge and Integrate All Animals
+# # ------------------------- #
+# cat("🔗 Integrating all animals...\n")
+# features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000)
+# seurat_objects <- PrepSCTIntegration(object.list = seurat_objects, anchor.features = features)
+# anchors <- FindIntegrationAnchors(object.list = seurat_objects, normalization.method = "SCT", anchor.features = features)
+# merged_seurat_obj <- IntegrateData(anchorset = anchors, normalization.method = "SCT")
+# # Save merged object
+# merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
+# saveRDS(merged_seurat_obj, merged_rds)
+# cat("✅ Merged Seurat object saved to", merged_rds, "\n")
+
+
+# # ------------------------- #
+# # UMAP & Clustering on Merged Data (Combined PDF per dims)
+# # ------------------------- #
+# DefaultAssay(merged_seurat_obj) <- "integrated"
+# merged_seurat_obj <- ScaleData(merged_seurat_obj, verbose = FALSE)
+# merged_seurat_obj <- RunPCA(merged_seurat_obj, npcs = max(dims_list))  # ensure enough PCs
+
+# for (dim in dims_list) {
+#   dims_to_use <- 1:dim
+#   merged_seurat_obj <- RunUMAP(merged_seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
+
+#   umap_plots <- list()
+#   for (res in resolutions) {
+#     merged_seurat_obj <- FindNeighbors(merged_seurat_obj, dims = dims_to_use)
+#     merged_seurat_obj <- FindClusters(merged_seurat_obj, resolution = res)
+
+#     p <- DimPlot(
+#       merged_seurat_obj,
+#       reduction = paste0("umap_dims", dim),
+#       group.by = "seurat_clusters",
+#       label = TRUE,
+#       pt.size = 0.3,
+#       repel = TRUE
+#     ) +
+#       ggtitle(paste("Merged UMAP - dims =", dim, "res =", res)) +
+#       theme(plot.title = element_text(hjust = 0.5)) +
+#       scale_color_viridis_d(option = "turbo")
+
+#     umap_plots[[paste0("res_", res)]] <- p
+#   }
+
+#   # Combine all resolution plots for this dim into one PDF
+#   combined_pdf <- wrap_plots(umap_plots, ncol = 2)
+#   pdf_path <- file.path(pdf_output_dir, paste0("merged_umap_dims", dim, "_multiRes_20250616.pdf"))
+
+#   ggsave(
+#     filename = pdf_path,
+#     plot = combined_pdf,
+#     width = 12,
+#     height = 4 * ceiling(length(umap_plots) / 2),
+#     dpi = 600
+#   )
+#   cat("✅ Merged multi-resolution UMAP saved:", pdf_path, "\n")
+# }
