@@ -97,6 +97,28 @@ cat("✅ QC'ed Seurat objects saved.\n")
 
 
 # ------------------------- #
+# Elbow Plot for Each Animal
+# ------------------------- #
+cat("📊 Generating elbow plots...\n")
+elbow_plots <- list()
+
+for (animal in names(seurat_objects)) {
+  seurat_obj <- seurat_objects[[animal]]
+  DefaultAssay(seurat_obj) <- "SCT"
+  seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
+  elbow_plots[[animal]] <- ElbowPlot(seurat_obj, ndims = 30) + 
+    ggtitle(paste("Elbow Plot -", animal)) +
+    theme(plot.title = element_text(hjust = 0.5, size = 12))
+}
+
+# Combine and save elbow plots
+pdf(file.path(pdf_output_dir, "elbow_plots_totalNK_each_animals_20250616.pdf"), width = 10, height = 8, onefile = TRUE)
+print(wrap_plots(elbow_plots, ncol = 2))
+dev.off()
+cat("✅ Elbow plots saved to PDF.\n")
+
+
+# ------------------------- #
 # UMAP & Clustering Per Animal
 # ------------------------- #
 dims_list <- c(15, 20, 25, 30)
