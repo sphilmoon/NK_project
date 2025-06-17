@@ -174,53 +174,53 @@ cat("✅ Elbow plots saved to PDF.\n")
 dims_list <- c(10, 15, 20, 25, 30)
 resolutions <- c(0.25, 0.5, 0.75)
 
-for (dim in dims_list) {
-  dims_to_use <- 1:dim
-  for (res in resolutions) {
-    plot_list <- list()
+# for (dim in dims_list) {
+#   dims_to_use <- 1:dim
+#   for (res in resolutions) {
+#     plot_list <- list()
 
-    for (animal in names(seurat_objects)) {
-      cat("📌 Processing:", animal, "dims:", dim, "res:", res, "\n")
-      seurat_obj <- seurat_objects[[animal]]
-      DefaultAssay(seurat_obj) <- "SCT"
-      seurat_obj <- ScaleData(seurat_obj)
-      seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
-      seurat_obj <- RunUMAP(seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
-      seurat_obj <- FindNeighbors(seurat_obj, dims = dims_to_use)
-      seurat_obj <- FindClusters(seurat_obj, resolution = res)
+#     for (animal in names(seurat_objects)) {
+#       cat("📌 Processing:", animal, "dims:", dim, "res:", res, "\n")
+#       seurat_obj <- seurat_objects[[animal]]
+#       DefaultAssay(seurat_obj) <- "SCT"
+#       seurat_obj <- ScaleData(seurat_obj)
+#       seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
+#       seurat_obj <- RunUMAP(seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
+#       seurat_obj <- FindNeighbors(seurat_obj, dims = dims_to_use)
+#       seurat_obj <- FindClusters(seurat_obj, resolution = res)
 
-      # Store updated object back
-      seurat_objects[[animal]] <- seurat_obj
+#       # Store updated object back
+#       seurat_objects[[animal]] <- seurat_obj
 
-      # Generate UMAP plot
-      p <- DimPlot(
-        seurat_obj,
-        reduction = paste0("umap_dims", dim),
-        group.by = "seurat_clusters",
-        label = TRUE,
-        pt.size = 0.3,
-        repel = TRUE
-      ) +
-        ggtitle(paste("UMAP:", animal, "dims =", dim, "res =", res)) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        scale_color_viridis_d(option = "turbo")
+#       # Generate UMAP plot
+#       p <- DimPlot(
+#         seurat_obj,
+#         reduction = paste0("umap_dims", dim),
+#         group.by = "seurat_clusters",
+#         label = TRUE,
+#         pt.size = 0.3,
+#         repel = TRUE
+#       ) +
+#         ggtitle(paste("UMAP:", animal, "dims =", dim, "res =", res)) +
+#         theme(plot.title = element_text(hjust = 0.5)) +
+#         scale_color_viridis_d(option = "turbo")
 
-        plot_list[[animal]] <- p
-    }
+#         plot_list[[animal]] <- p
+#     }
 
-    # Combine plots for current dims+res
-    combined_plot <- wrap_plots(plot_list, ncol = 2)
-    pdf_name <- file.path(pdf_output_dir, paste0("combined_umap_dims", dim, "_res", res, "_20250616.pdf"))
-    ggsave(
-      filename = pdf_name,
-      plot = combined_plot,
-      width = 12,
-      height = 10,
-      dpi = 600
-    )
-    cat("✅ Saved:", pdf_name, "\n")
-  }
-}
+#     # Combine plots for current dims+res
+#     combined_plot <- wrap_plots(plot_list, ncol = 2)
+#     pdf_name <- file.path(pdf_output_dir, paste0("combined_umap_dims", dim, "_res", res, "_20250616.pdf"))
+#     ggsave(
+#       filename = pdf_name,
+#       plot = combined_plot,
+#       width = 12,
+#       height = 10,
+#       dpi = 600
+#     )
+#     cat("✅ Saved:", pdf_name, "\n")
+#   }
+# }
 
 
 # ------------------------- #
@@ -263,7 +263,7 @@ for (dim in dims_list) {
     ) +
       ggtitle(paste("Merged UMAP - dims =", dim, "res =", res)) +
       theme(plot.title = element_text(hjust = 0.5)) +
-      scale_color_brewer(palette = "Set2")
+      scale_color_brewer(palette = "magma")
 
     umap_plots[[paste0("res_", res)]] <- p
   }
