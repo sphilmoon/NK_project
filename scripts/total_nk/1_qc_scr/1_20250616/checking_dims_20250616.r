@@ -20,81 +20,81 @@ dir.create(pdf_output_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(tsv_output_dir, recursive = TRUE, showWarnings = FALSE)
 
 
-# # ------------------------- #
-# # Define Input Directories
-# # ------------------------- #
-# totalNK_h5_dir <- "/home/rawdata/totalNK"
-# animal_names <- c("animal25", "animal26", "animal27", "animal28")
+# ------------------------- #
+# Define Input Directories
+# ------------------------- #
+totalNK_h5_dir <- "/home/rawdata/totalNK"
+animal_names <- c("animal25", "animal26", "animal27", "animal28")
 
 
-# # ------------------------- #
-# # Build File Paths
-# # ------------------------- #
-# build_h5_paths <- function(base_dir, condition_prefix) {
-#  fnames <- paste0(tolower(animal_names), "_", condition_prefix, "_filtered_feature_bc_matrix.h5")
-#  full_paths <- file.path(base_dir, fnames)
-#  missing <- !file.exists(full_paths)
-#  if (any(missing)) {
-#    cat("❌ Missing files:\n")
-#    print(full_paths[missing])
-#    stop("Some .h5 files are missing. Please check the paths or filenames.")
-#  }
-#  names(full_paths) <- animal_names
-#  return(full_paths)
-# }
-# totalNK_file_paths <- build_h5_paths(totalNK_h5_dir, "totalnk")
+# ------------------------- #
+# Build File Paths
+# ------------------------- #
+build_h5_paths <- function(base_dir, condition_prefix) {
+ fnames <- paste0(tolower(animal_names), "_", condition_prefix, "_filtered_feature_bc_matrix.h5")
+ full_paths <- file.path(base_dir, fnames)
+ missing <- !file.exists(full_paths)
+ if (any(missing)) {
+   cat("❌ Missing files:\n")
+   print(full_paths[missing])
+   stop("Some .h5 files are missing. Please check the paths or filenames.")
+ }
+ names(full_paths) <- animal_names
+ return(full_paths)
+}
+totalNK_file_paths <- build_h5_paths(totalNK_h5_dir, "totalnk")
 
 
-# # ------------------------- #
-# # Load and QC Each Animal
-# # ------------------------- #
-# seurat_objects <- list()
-# combined_plots <- list()
-# perform_qc <- function(seurat_obj, sample_name) {
-#  qc_params <- list(
-#    animal27 = list(nFeature_min = 200, nFeature_max = 3000, nCount_min = 250, nCount_max = 7500),
-#    animal28 = list(nFeature_min = 200, nFeature_max = 3000, nCount_min = 250, nCount_max = 10000),
-#    default  = list(nFeature_min = 200, nFeature_max = 3000, nCount_min = 500, nCount_max = 10000)
-#  )
-#  params <- if (sample_name %in% names(qc_params)) qc_params[[sample_name]] else qc_params$default
-#  seurat_obj <- subset(
-#    seurat_obj,
-#    subset = nFeature_RNA > params$nFeature_min & nFeature_RNA < params$nFeature_max &
-#             nCount_RNA > params$nCount_min & nCount_RNA < params$nCount_max
-#  )
-#  return(seurat_obj)
-# }
+# ------------------------- #
+# Load and QC Each Animal
+# ------------------------- #
+seurat_objects <- list()
+combined_plots <- list()
+perform_qc <- function(seurat_obj, sample_name) {
+ qc_params <- list(
+   animal27 = list(nFeature_min = 200, nFeature_max = 3000, nCount_min = 250, nCount_max = 7500),
+   animal28 = list(nFeature_min = 200, nFeature_max = 3000, nCount_min = 250, nCount_max = 10000),
+   default  = list(nFeature_min = 200, nFeature_max = 3000, nCount_min = 500, nCount_max = 10000)
+ )
+ params <- if (sample_name %in% names(qc_params)) qc_params[[sample_name]] else qc_params$default
+ seurat_obj <- subset(
+   seurat_obj,
+   subset = nFeature_RNA > params$nFeature_min & nFeature_RNA < params$nFeature_max &
+            nCount_RNA > params$nCount_min & nCount_RNA < params$nCount_max
+ )
+ return(seurat_obj)
+}
 
-# for (i in seq_along(totalNK_file_paths)) {
-#  sample <- names(totalNK_file_paths)[i]
-#  filepath <- totalNK_file_paths[[i]]
-#  cat("📥 Reading:", sample, "\n")
-#  seurat_obj <- Read10X_h5(filepath) %>%
-#    CreateSeuratObject(project = sample, min.cells = 3, min.features = 200)
-#  seurat_obj$animal <- sample
-#  # Add mitochondrial percentage
-#  seurat_obj[["percent.mt"]] <- PercentageFeatureSet(seurat_obj, pattern = "^mt-")
-#  # QC filter
-#  seurat_obj <- perform_qc(seurat_obj, sample)
-#  # Normalize
-#  seurat_obj <- SCTransform(seurat_obj, vars.to.regress = "percent.mt", verbose = FALSE)
-#  # Save object
-#  seurat_objects[[sample]] <- seurat_obj
-#  # Generate QC plots
-#  p1 <- VlnPlot(seurat_obj, features = "nFeature_RNA", pt.size = 0) + ggtitle("Gene counts")
-#  p2 <- VlnPlot(seurat_obj, features = "nCount_RNA", pt.size = 0) + ggtitle("UMI counts")
-#  combined_plot <- p1 + p2 + plot_layout(ncol = 2) + plot_annotation(title = paste("QC for", sample))
-#  combined_plots[[sample]] <- combined_plot
-#  cat("✅ QC and normalization complete for", sample, "\n")
-# }
-# # Save all QC plots
-# pdf(file.path(pdf_output_dir, "qc_totalNK_animals_20250616.pdf"), width = 10, height = 6 * length(combined_plots))
-# for (plot in combined_plots) print(plot)
-# dev.off()
-# cat("✅ QC plots saved.\n")
-# # Save individual objects
-# saveRDS(seurat_objects, file.path(rds_output_dir, "1_qc_sctransform_20250616.rds"))
-# cat("✅ QC'ed Seurat objects saved.\n")
+for (i in seq_along(totalNK_file_paths)) {
+ sample <- names(totalNK_file_paths)[i]
+ filepath <- totalNK_file_paths[[i]]
+ cat("📥 Reading:", sample, "\n")
+ seurat_obj <- Read10X_h5(filepath) %>%
+   CreateSeuratObject(project = sample, min.cells = 3, min.features = 200)
+ seurat_obj$animal <- sample
+ # Add mitochondrial percentage
+ seurat_obj[["percent.mt"]] <- PercentageFeatureSet(seurat_obj, pattern = "^mt-")
+ # QC filter
+ seurat_obj <- perform_qc(seurat_obj, sample)
+ # Normalize
+ seurat_obj <- SCTransform(seurat_obj, vars.to.regress = "percent.mt", verbose = FALSE)
+ # Save object
+ seurat_objects[[sample]] <- seurat_obj
+ # Generate QC plots
+ p1 <- VlnPlot(seurat_obj, features = "nFeature_RNA", pt.size = 0) + ggtitle("Gene counts")
+ p2 <- VlnPlot(seurat_obj, features = "nCount_RNA", pt.size = 0) + ggtitle("UMI counts")
+ combined_plot <- p1 + p2 + plot_layout(ncol = 2) + plot_annotation(title = paste("QC for", sample))
+ combined_plots[[sample]] <- combined_plot
+ cat("✅ QC and normalization complete for", sample, "\n")
+}
+# Save all QC plots
+pdf(file.path(pdf_output_dir, "qc_totalNK_animals_20250616.pdf"), width = 10, height = 6 * length(combined_plots))
+for (plot in combined_plots) print(plot)
+dev.off()
+cat("✅ QC plots saved.\n")
+# Save individual objects
+saveRDS(seurat_objects, file.path(rds_output_dir, "1_qc_sctransform_20250616.rds"))
+cat("✅ QC'ed Seurat objects saved.\n")
 
 
 # # ------------------------- #
@@ -148,7 +148,7 @@ dir.create(tsv_output_dir, recursive = TRUE, showWarnings = FALSE)
 
 
 # # ------------------------- #
-# # Elbow Plot for Each Animal
+# # Elbow Plot for Each Animal using SCT (SCT assay)
 # # ------------------------- #
 # cat("📊 Generating elbow plots...\n")
 # elbow_plots <- list()
@@ -163,103 +163,211 @@ dir.create(tsv_output_dir, recursive = TRUE, showWarnings = FALSE)
 # }
 
 # # Combine and save elbow plots
-# pdf(file.path(pdf_output_dir, "elbow_plots_totalNK_each_animals_20250616.pdf"), width = 10, height = 8, onefile = TRUE)
+# pdf(file.path(pdf_output_dir, "elbowplots_SCT_totalNK_each_animals_20250616.pdf"), width = 10, height = 8, onefile = TRUE)
 # print(wrap_plots(elbow_plots, ncol = 2))
 # dev.off()
 # cat("✅ Elbow plots saved to PDF.\n")
 
-# # ------------------------- #
-# # UMAP & Clustering Per Animal (combined PDF per dim+res)
-# # ------------------------- #
+
+# ------------------------- #
+# Elbow Plot for Merged Seurat Object
+# ------------------------- #
+
+# # Load merged object if not in memory
+# merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
+# merged_seurat_obj <- readRDS(merged_rds)
+
+# # Ensure PCA has been run (optional if already present)
+# if (!"pca" %in% names(merged_seurat_obj@reductions)) {
+#   DefaultAssay(merged_seurat_obj) <- "integrated"
+#   merged_seurat_obj <- ScaleData(merged_seurat_obj, verbose = FALSE)
+#   merged_seurat_obj <- RunPCA(merged_seurat_obj, npcs = 30, verbose = FALSE)
+# }
+
+# # Create Elbow Plot
+# elbow_plot <- ElbowPlot(merged_seurat_obj, ndims = 30) +
+#   ggtitle("Elbow Plot - Merged Total NK") +
+#   theme(plot.title = element_text(hjust = 0.5))
+
+# # Save to PDF
+# ggsave(
+#   filename = file.path(pdf_output_dir, "elbow_plot_merged_totalNK_20250616.pdf"),
+#   plot = elbow_plot,
+#   width = 8,
+#   height = 6,
+#   dpi = 600
+# )
+# cat("✅ Elbow plot saved to:", file.path(pdf_output_dir, "elbow_plot_merged_totalNK_20250616.pdf"), "\n")
+
+
+
+# ------------------------- #
+# Elbow Plot for Each Animal using LogNormalized Data (RNA assay)
+# ------------------------- #
+
+cat("📊 Generating LogNormalize-based Elbow Plots...\n")
+
+# Create list to store elbow plots
+lognorm_elbow_plots <- list()
+
+# Loop through each animal/sample
+for (animal in names(seurat_objects)) {
+  cat("🔄 Processing:", animal, "\n")
+
+  obj <- seurat_objects[[animal]]
+
+  # Set to RNA assay and log-normalize
+  DefaultAssay(obj) <- "RNA"
+  obj <- NormalizeData(obj, normalization.method = "LogNormalize", scale.factor = 10000)
+  obj <- FindVariableFeatures(obj)
+  obj <- ScaleData(obj)
+  obj <- RunPCA(obj)
+
+  # Generate elbow plot
+  elbow_plot <- ElbowPlot(obj, ndims = 30) +
+    ggtitle(paste("Elbow Plot (LogNormalized) -", animal)) +
+    theme(plot.title = element_text(hjust = 0.5, size = 12))
+
+  lognorm_elbow_plots[[animal]] <- elbow_plot
+
+  # Optionally store PCA-modified object
+  seurat_objects[[animal]] <- obj
+}
+
+# Save all elbow plots in one combined PDF
+elbow_pdf_path <- file.path(pdf_output_dir, "elbow_log_totalNK_animals_20250616.pdf")
+pdf(elbow_pdf_path, width = 10, height = 6 * ceiling(length(lognorm_elbow_plots) / 2))
+print(wrap_plots(lognorm_elbow_plots, ncol = 2))
+dev.off()
+
+cat("✅ LogNormalize-based elbow plots saved to:", elbow_pdf_path, "\n")
+
+
+# ------------------------- #
+# Elbow Plot for Merged Object (LogNormalize)
+# ------------------------- #
+
+cat("📦 Loading merged object for LogNormalize-based elbow plot...\n")
+
+# If not already loaded
+merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
+merged_seurat_obj <- readRDS(merged_rds)
+
+# Set to RNA assay and normalize
+DefaultAssay(merged_seurat_obj) <- "RNA"
+merged_seurat_obj <- NormalizeData(merged_seurat_obj, normalization.method = "LogNormalize", scale.factor = 10000)
+merged_seurat_obj <- FindVariableFeatures(merged_seurat_obj)
+merged_seurat_obj <- ScaleData(merged_seurat_obj)
+merged_seurat_obj <- RunPCA(merged_seurat_obj)
+
+# Generate elbow plot
+elbow_plot_merged <- ElbowPlot(merged_seurat_obj, ndims = 30) +
+  ggtitle("Elbow Plot (LogNormalized) - Merged") +
+  theme(plot.title = element_text(hjust = 0.5, size = 12))
+
+# Save as PDF
+pdf_merged_path <- file.path(pdf_output_dir, "elbow_lognormalized_merged_totalNK_20250616.pdf")
+ggsave(
+  filename = pdf_merged_path,
+  plot = elbow_plot_merged,
+  width = 10,
+  height = 6,
+  dpi = 600
+)
+
+cat("✅ Merged LogNormalize-based elbow plot saved to:", pdf_merged_path, "\n")
+
+
+# ------------------------- #
+# UMAP + Clustering: SCT & LogNormalized (combined PDF per dim+res)
+# ------------------------- #
+
 # dims_list <- c(10, 15, 20, 25, 30)
 # resolutions <- c(0.25, 0.5, 0.75)
 
-# for (dim in dims_list) {
-#   dims_to_use <- 1:dim
-#   for (res in resolutions) {
-#     plot_list <- list()
-
-#     for (animal in names(seurat_objects)) {
-#       cat("📌 Processing:", animal, "dims:", dim, "res:", res, "\n")
-#       seurat_obj <- seurat_objects[[animal]]
-#       DefaultAssay(seurat_obj) <- "SCT"
-#       seurat_obj <- ScaleData(seurat_obj)
-#       seurat_obj <- RunPCA(seurat_obj, verbose = FALSE)
-#       seurat_obj <- RunUMAP(seurat_obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
-#       seurat_obj <- FindNeighbors(seurat_obj, dims = dims_to_use)
-#       seurat_obj <- FindClusters(seurat_obj, resolution = res)
-
-#       # Store updated object back
-#       seurat_objects[[animal]] <- seurat_obj
-
-#       # Generate UMAP plot
-#       p <- DimPlot(
-#         seurat_obj,
-#         reduction = paste0("umap_dims", dim),
-#         group.by = "seurat_clusters",
-#         label = TRUE,
-#         pt.size = 0.3,
-#         repel = TRUE
-#       ) +
-#         ggtitle(paste("UMAP:", animal, "dims =", dim, "res =", res)) +
-#         theme(plot.title = element_text(hjust = 0.5)) +
-#         scale_color_viridis_d(option = "turbo")
-
-#         plot_list[[animal]] <- p
-#     }
-
-#     # Combine plots for current dims+res
-#     combined_plot <- wrap_plots(plot_list, ncol = 2)
-#     pdf_name <- file.path(pdf_output_dir, paste0("combined_umap_dims", dim, "_res", res, "_20250616.pdf"))
-#     ggsave(
-#       filename = pdf_name,
-#       plot = combined_plot,
-#       width = 12,
-#       height = 10,
-#       dpi = 600
-#     )
-#     cat("✅ Saved:", pdf_name, "\n")
-#   }
-# }
-
-
-# # ------------------------- #
-# # Track Cluster Cell Counts
-# # ------------------------- #
+# # Store cell counts
 # cluster_summary <- data.frame()
 
-# for (dim in dims_list) {
-#   dims_to_use <- 1:dim
-#   for (res in resolutions) {
-#     for (animal in names(seurat_objects)) {
-#       cat("📊 Counting cells for", animal, "dims =", dim, "res =", res, "\n")
+# for (method in c("SCT", "LogNormalize")) {
+#   for (dim in dims_list) {
+#     dims_to_use <- 1:dim
 
-#       obj <- seurat_objects[[animal]]
-#       DefaultAssay(obj) <- "SCT"
-#       obj <- ScaleData(obj)
-#       obj <- RunPCA(obj, verbose = FALSE)
-#       obj <- RunUMAP(obj, dims = dims_to_use, reduction.name = paste0("umap_dims", dim))
-#       obj <- FindNeighbors(obj, dims = dims_to_use)
-#       obj <- FindClusters(obj, resolution = res)
+#     for (res in resolutions) {
+#       plot_list <- list()
 
-#       seurat_objects[[animal]] <- obj  # update stored object
+#       for (animal in names(seurat_objects)) {
+#         cat("📌 Processing:", animal, "method:", method, "dims:", dim, "res:", res, "\n")
+#         obj <- seurat_objects[[animal]]
 
-#       cluster_table <- table(Idents(obj))
-#       df <- data.frame(
-#         animal = animal,
-#         dims = dim,
-#         resolution = res,
-#         cluster = as.integer(names(cluster_table)),
-#         cell_count = as.vector(cluster_table)
+#         # Switch assay and normalize
+#         if (method == "SCT") {
+#           DefaultAssay(obj) <- "SCT"
+#           obj <- ScaleData(obj, verbose = FALSE)
+#         } else if (method == "LogNormalize") {
+#           DefaultAssay(obj) <- "RNA"
+#           obj <- NormalizeData(obj, normalization.method = "LogNormalize", scale.factor = 10000)
+#           obj <- FindVariableFeatures(obj)
+#           obj <- ScaleData(obj)
+#         }
+
+#         obj <- RunPCA(obj, verbose = FALSE)
+#         obj <- RunUMAP(obj, dims = dims_to_use, reduction.name = paste0("umap_", method, "_dims", dim))
+#         obj <- FindNeighbors(obj, dims = dims_to_use)
+#         obj <- FindClusters(obj, resolution = res)
+
+#         seurat_objects[[animal]] <- obj  # update
+
+#         # UMAP plot
+#         p <- DimPlot(
+#           obj,
+#           reduction = paste0("umap_", method, "_dims", dim),
+#           group.by = "seurat_clusters",
+#           label = TRUE,
+#           pt.size = 0.3,
+#           repel = TRUE
+#         ) +
+#           ggtitle(paste0("UMAP: ", animal, " | ", method, " | dims=", dim, " res=", res)) +
+#           theme(plot.title = element_text(hjust = 0.5)) +
+#           scale_color_viridis_d(option = "turbo")
+
+#         plot_list[[animal]] <- p
+
+#         # Record cell counts
+#         clust_tab <- table(Idents(obj))
+#         df <- data.frame(
+#           method = method,
+#           animal = animal,
+#           dims = dim,
+#           resolution = res,
+#           cluster = as.integer(names(clust_tab)),
+#           cell_count = as.vector(clust_tab)
+#         )
+#         cluster_summary <- rbind(cluster_summary, df)
+#       }
+
+#       # Save combined PDF
+#       combined_plot <- wrap_plots(plot_list, ncol = 2)
+#       pdf_name <- file.path(
+#         pdf_output_dir,
+#         paste0("individual_umap_", method, "_dims", dim, "_res", res, "_20250616.pdf")
 #       )
-
-#       cluster_summary <- rbind(cluster_summary, df)
+#       ggsave(
+#         filename = pdf_name,
+#         plot = combined_plot,
+#         width = 12,
+#         height = 10,
+#         dpi = 600
+#       )
+#       cat("✅ Saved:", pdf_name, "\n")
 #     }
 #   }
 # }
 
-# # Save as CSV
-# csv_path <- file.path(tsv_output_dir, "cluster_cell_counts_summary.csv")
+
+# # ------------------------- #
+# # Save Cluster Cell Counts Summary
+# # ------------------------- #
+# csv_path <- file.path(tsv_output_dir, "cluster_cell_counts_summary_sct_vs_log.csv")
 # write.csv(cluster_summary, csv_path, row.names = FALSE)
 # cat("✅ Cluster cell count summary saved to:", csv_path, "\n")
 
@@ -276,37 +384,6 @@ dir.create(tsv_output_dir, recursive = TRUE, showWarnings = FALSE)
 # merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
 # saveRDS(merged_seurat_obj, merged_rds)
 # cat("✅ Merged Seurat object saved to", merged_rds, "\n")
-
-
-# ------------------------- #
-# Elbow Plot for Merged Seurat Object
-# ------------------------- #
-
-# Load merged object if not in memory
-merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
-merged_seurat_obj <- readRDS(merged_rds)
-
-# Ensure PCA has been run (optional if already present)
-if (!"pca" %in% names(merged_seurat_obj@reductions)) {
-  DefaultAssay(merged_seurat_obj) <- "integrated"
-  merged_seurat_obj <- ScaleData(merged_seurat_obj, verbose = FALSE)
-  merged_seurat_obj <- RunPCA(merged_seurat_obj, npcs = 30, verbose = FALSE)
-}
-
-# Create Elbow Plot
-elbow_plot <- ElbowPlot(merged_seurat_obj, ndims = 30) +
-  ggtitle("Elbow Plot - Merged Total NK") +
-  theme(plot.title = element_text(hjust = 0.5))
-
-# Save to PDF
-ggsave(
-  filename = file.path(pdf_output_dir, "elbow_plot_merged_totalNK_20250616.pdf"),
-  plot = elbow_plot,
-  width = 8,
-  height = 6,
-  dpi = 600
-)
-cat("✅ Elbow plot saved to:", file.path(pdf_output_dir, "elbow_plot_merged_totalNK_20250616.pdf"), "\n")
 
 
 # # ------------------------- #
