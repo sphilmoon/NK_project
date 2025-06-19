@@ -94,10 +94,12 @@ for (i in seq_along(totalNK_file_paths)) {
 # for (plot in combined_plots) print(plot)
 # dev.off()
 # cat("✅ QC plots saved.\n")
-# # Save individual objects
-# saveRDS(seurat_objects, file.path(rds_output_dir, "1_qc_sctransform_20250616.rds"))
-# cat("✅ QC'ed Seurat objects saved.\n")
 
+# Save SCT-normalized baseline
+seurat_objects_sct <- seurat_objects
+# Save individual objects
+saveRDS(seurat_objects_sct, file.path(rds_output_dir, "1_qc_sctransform_20250616.rds"))
+cat("✅ QC'ed Seurat objects saved.\n")
 
 # # ------------------------- #
 # # JackStraw Analysis: Print Significant PCs Before Plotting
@@ -171,9 +173,9 @@ for (i in seq_along(totalNK_file_paths)) {
 # cat("✅ Elbow plots saved to PDF.\n")
 
 
-# ------------------------- #
-# Elbow Plot for Merged Seurat Object
-# ------------------------- #
+# # ------------------------- #
+# # Elbow Plot for Merged Seurat Object
+# # ------------------------- #
 
 # # Load merged object if not in memory
 # merged_rds <- file.path(rds_output_dir, "merged_totalNK_20250616.rds")
@@ -245,9 +247,9 @@ for (i in seq_along(totalNK_file_paths)) {
 # cat("✅ LogNormalize-based elbow plots saved to:", elbow_pdf_path, "\n")
 
 
-# ------------------------- #
-# Elbow Plot for Merged Object (LogNormalize)
-# ------------------------- #
+# # ------------------------- #
+# # Elbow Plot for Merged Object (LogNormalize)
+# # ------------------------- #
 
 # cat("📦 Loading merged object for LogNormalize-based elbow plot...\n")
 
@@ -280,123 +282,134 @@ for (i in seq_along(totalNK_file_paths)) {
 # cat("✅ Merged LogNormalize-based elbow plot saved to:", pdf_merged_path, "\n")
 
 
+# # ------------------------- #
+# # Testing various dimensions and resolutions for both SCT and LogNormalize methods as an individual animal analysis
+# # ------------------------- #
+
 dims_list <- c(10, 15, 20, 25, 30)
-resolutions <- c(0.25, 0.3, 0.5, 0.75)
+resolutions <- c(0.25, 0.5, 0.75)
 small_cluster_threshold <- 100
 
-cluster_summary <- data.frame()
+# cluster_summary <- data.frame()
 
-for (method in c("SCT", "LogNormalize")) {
-  for (dim in dims_list) {
-    dims_to_use <- 1:dim
+# for (method in c("SCT", "LogNormalize")) {
+#   for (dim in dims_list) {
+#     dims_to_use <- 1:dim
 
-    for (res in resolutions) {
-      plot_list <- list()
+#     for (res in resolutions) {
+#       plot_list <- list()
 
-      for (animal in names(seurat_objects)) {
-        cat("📌 Processing:", animal, "method:", method, "dims:", dim, "res:", res, "\n")
-        obj <- seurat_objects[[animal]]
+#       for (animal in names(seurat_objects)) {
+#         cat("📌 Processing:", animal, "method:", method, "dims:", dim, "res:", res, "\n")
+#         obj <- seurat_objects[[animal]]
 
-        # Assay setup
-        if (method == "SCT") {
-          DefaultAssay(obj) <- "SCT"
-          obj <- ScaleData(obj, verbose = FALSE)
-        } else {
-          DefaultAssay(obj) <- "RNA"
-          obj <- NormalizeData(obj, normalization.method = "LogNormalize", scale.factor = 10000)
-          obj <- FindVariableFeatures(obj)
-          obj <- ScaleData(obj)
-        }
+#         # Assay setup
+#         if (method == "SCT") {
+#           DefaultAssay(obj) <- "SCT"
+#           obj <- ScaleData(obj, verbose = FALSE)
+#         } else {
+#           DefaultAssay(obj) <- "RNA"
+#           obj <- NormalizeData(obj, normalization.method = "LogNormalize", scale.factor = 10000)
+#           obj <- FindVariableFeatures(obj)
+#           obj <- ScaleData(obj)
+#         }
 
-        obj <- RunPCA(obj, npcs = max(dims_list), verbose = FALSE)
-        obj <- RunUMAP(obj, dims = dims_to_use, reduction.name = paste0("umap_", method, "_dims", dim))
-        obj <- FindNeighbors(obj, dims = dims_to_use)
-        obj <- FindClusters(obj, resolution = res)
+#         obj <- RunPCA(obj, npcs = max(dims_list), verbose = FALSE)
+#         obj <- RunUMAP(obj, dims = dims_to_use, reduction.name = paste0("umap_", method, "_dims", dim))
+#         obj <- FindNeighbors(obj, dims = dims_to_use)
+#         obj <- FindClusters(obj, resolution = res)
 
-        seurat_objects[[animal]] <- obj  # update
+#         seurat_objects[[animal]] <- obj  # update
 
-        # UMAP plot
-        p <- DimPlot(
-          obj,
-          reduction = paste0("umap_", method, "_dims", dim),
-          group.by = "seurat_clusters",
-          label = TRUE,
-          pt.size = 0.3,
-          repel = TRUE
-        ) +
-          ggtitle(paste0("UMAP: ", animal, " | ", method, " | dims=", dim, " res=", res)) +
-          theme(plot.title = element_text(hjust = 0.5)) +
-          scale_color_viridis_d(option = "turbo")
-        plot_list[[animal]] <- p
+#         # UMAP plot
+#         p <- DimPlot(
+#           obj,
+#           reduction = paste0("umap_", method, "_dims", dim),
+#           group.by = "seurat_clusters",
+#           label = TRUE,
+#           pt.size = 0.3,
+#           repel = TRUE
+#         ) +
+#           ggtitle(paste0("UMAP: ", animal, " | ", method, " | dims=", dim, " res=", res)) +
+#           theme(plot.title = element_text(hjust = 0.5)) +
+#           scale_color_viridis_d(option = "turbo")
+#         plot_list[[animal]] <- p
 
-        # Cell count
-        clust_tab <- table(Idents(obj))
-        count_df <- data.frame(
-          method = method,
-          animal = animal,
-          dims = dim,
-          resolution = res,
-          cluster = as.integer(names(clust_tab)),
-          cell_count = as.vector(clust_tab)
-        )
+#         # Cell count
+#         clust_tab <- table(Idents(obj))
+#         count_df <- data.frame(
+#           method = method,
+#           animal = animal,
+#           dims = dim,
+#           resolution = res,
+#           cluster = as.integer(names(clust_tab)),
+#           cell_count = as.vector(clust_tab)
+#         )
 
-        # Silhouette
-        pca_mat <- Embeddings(obj, "pca")[, dims_to_use]
-        cluster_ids <- Idents(obj)
+#         # Silhouette
+#         pca_mat <- Embeddings(obj, "pca")[, dims_to_use]
+#         cluster_ids <- Idents(obj)
 
-        sil_df <- if (length(unique(cluster_ids)) > 1) {
-          sil <- silhouette(as.numeric(cluster_ids), dist(pca_mat))
-          as.data.frame(sil) %>%
-            mutate(cluster = as.integer(cluster_ids)) %>%
-            group_by(cluster) %>%
-            summarise(silhouette_score = mean(sil_width), .groups = "drop")
-        } else {
-          data.frame(cluster = as.integer(names(clust_tab)), silhouette_score = NA_real_)
-        }
+#         sil_df <- if (length(unique(cluster_ids)) > 1) {
+#           sil <- silhouette(as.numeric(cluster_ids), dist(pca_mat))
+#           as.data.frame(sil) %>%
+#             mutate(cluster = as.integer(cluster_ids)) %>%
+#             group_by(cluster) %>%
+#             summarise(silhouette_score = mean(sil_width), .groups = "drop")
+#         } else {
+#           data.frame(cluster = as.integer(names(clust_tab)), silhouette_score = NA_real_)
+#         }
 
-        count_df <- left_join(count_df, sil_df, by = "cluster")
-        count_df$is_small_cluster <- count_df$cell_count < small_cluster_threshold
+#         count_df <- left_join(count_df, sil_df, by = "cluster")
+#         count_df$is_small_cluster <- count_df$cell_count < small_cluster_threshold
 
-        # Average silhouette (entire animal/method/dim/res group)
-        avg_sil <- tryCatch({
-          if (length(unique(cluster_ids)) > 1) {
-            sil <- silhouette(as.numeric(cluster_ids), dist(pca_mat))
-            mean(sil[, "sil_width"], na.rm = TRUE)
-          } else {
-            NA_real_
-          }
-        }, error = function(e) NA_real_)
+#         # Average silhouette (entire animal/method/dim/res group)
+#         avg_sil <- tryCatch({
+#           if (length(unique(cluster_ids)) > 1) {
+#             sil <- silhouette(as.numeric(cluster_ids), dist(pca_mat))
+#             mean(sil[, "sil_width"], na.rm = TRUE)
+#           } else {
+#             NA_real_
+#           }
+#         }, error = function(e) NA_real_)
 
-        count_df$average_silhouette_score <- avg_sil
+#         count_df$average_silhouette_score <- avg_sil
 
-        # Append
-        cluster_summary <- rbind(cluster_summary, count_df)
-      }
+#         # Append
+#         cluster_summary <- rbind(cluster_summary, count_df)
+#       }
 
-      # Save combined UMAP PDF
-      pdf_file <- file.path(
-        pdf_output_dir,
-        paste0("individual_umap_", method, "_dims", dim, "_res", res, "_20250616.pdf")
-      )
-      ggsave(pdf_file, wrap_plots(plot_list, ncol = 2), width = 12, height = 10, dpi = 600)
-      cat("✅ Saved:", pdf_file, "\n")
-    }
-  }
-}
+#       # Save combined UMAP PDF
+#       pdf_file <- file.path(
+#         pdf_output_dir,
+#         paste0("individual_umap_", method, "_dims", dim, "_res", res, "_20250616.pdf")
+#       )
+#       ggsave(pdf_file, wrap_plots(plot_list, ncol = 2), width = 12, height = 10, dpi = 600)
+#       cat("✅ Saved:", pdf_file, "\n")
+#     }
+#   }
+# }
 
-# ------------------------- #
-# Save Final Summary CSV
-# ------------------------- #
-csv_path <- file.path(tsv_output_dir, "cluster_cell_counts_with_silhouette_sct_vs_log.csv")
-write.csv(cluster_summary, csv_path, row.names = FALSE)
-cat("✅ Final cluster summary saved to:", csv_path, "\n")
+# # ------------------------- #
+# # Save Final Summary CSV
+# # ------------------------- #
+# csv_path <- file.path(tsv_output_dir, "indie_cluster_summary_sct_vs_log.csv")
+# write.csv(cluster_summary, csv_path, row.names = FALSE)
+# cat("✅ Final cluster summary saved to:", csv_path, "\n")
+
 
 # ------------------------- #
 # Merged Seurat Object - SCT Integration
 # ------------------------- #
+
+# Define dims/resolution for downstream UMAP/clustering
+dims_list <- c(10, 15, 20, 25, 30)
+resolutions <- c(0.25, 0.3, 0.5, 0.75)
+small_cluster_threshold <- 100  # Customize as needed
+
 cat("🔗 Integrating all animals using SCT...\n")
-sct_features <- SelectIntegrationFeatures(object.list = seurat_objects, nfeatures = 3000)
-sct_prepped <- PrepSCTIntegration(object.list = seurat_objects, anchor.features = sct_features)
+sct_features <- SelectIntegrationFeatures(object.list = seurat_objects_sct, nfeatures = 3000)
+sct_prepped <- PrepSCTIntegration(object.list = seurat_objects_sct, anchor.features = sct_features)
 sct_anchors <- FindIntegrationAnchors(object.list = sct_prepped, normalization.method = "SCT", anchor.features = sct_features)
 merged_sct <- IntegrateData(anchorset = sct_anchors, normalization.method = "SCT")
 
@@ -428,52 +441,120 @@ saveRDS(merged_lognorm, file.path(rds_output_dir, "merged_totalNK_LogNorm_202506
 cat("✅ Merged LogNormalized Seurat object saved.\n")
 
 
+# # ------------------------- #
+# # UMAP & Clustering for Both Merged Datasets
+# # ------------------------- #
+# for (method in c("SCT", "LogNormalize")) {
+#   cat("🚀 Running UMAP + clustering for merged:", method, "\n")
+#   merged_obj <- if (method == "SCT") merged_sct else merged_lognorm
+#   DefaultAssay(merged_obj) <- ifelse(method == "SCT", "integrated", "RNA")
+
+#   merged_obj <- ScaleData(merged_obj, verbose = FALSE)
+#   merged_obj <- RunPCA(merged_obj, npcs = max(dims_list))
+
+#   for (dim in dims_list) {
+#     dims_to_use <- 1:dim
+#     merged_obj <- RunUMAP(merged_obj, dims = dims_to_use, reduction.name = paste0("umap_", method, "_dims", dim))
+
+#     umap_plots <- list()
+
+#     for (res in resolutions) {
+#       merged_obj <- FindNeighbors(merged_obj, dims = dims_to_use)
+#       merged_obj <- FindClusters(merged_obj, resolution = res)
+
+#       p <- DimPlot(
+#         merged_obj,
+#         reduction = paste0("umap_", method, "_dims", dim),
+#         group.by = "seurat_clusters",
+#         label = TRUE,
+#         pt.size = 0.3,
+#         repel = TRUE
+#       ) +
+#         ggtitle(paste("Merged UMAP -", method, "- dims =", dim, "res =", res)) +
+#         theme(plot.title = element_text(hjust = 0.5)) +
+#         scale_color_viridis_d(option = "turbo")
+
+#       umap_plots[[paste0("res_", res)]] <- p
+#     }
+
+#     # Save PDF with all resolutions for this dims
+#     combined_plot <- wrap_plots(umap_plots, ncol = 2)
+#     pdf_name <- file.path(pdf_output_dir, paste0("merged_umap_", method, "_dims", dim, "_multiRes_20250616.pdf"))
+#     ggsave(
+#       filename = pdf_name,
+#       plot = combined_plot,
+#       width = 12,
+#       height = 4 * ceiling(length(resolutions) / 2),
+#       dpi = 600
+#     )
+#     cat("✅ Saved:", pdf_name, "\n")
+#   }
+# }
+
+
+
 # ------------------------- #
-# UMAP & Clustering for Both Merged Datasets
+# Cluster Summary: Merged Seurat Object
 # ------------------------- #
+
+merged_cluster_summary <- data.frame()
+
 for (method in c("SCT", "LogNormalize")) {
-  cat("🚀 Running UMAP + clustering for merged:", method, "\n")
+  cat("📊 Generating cluster summary for:", method, "\n")
   merged_obj <- if (method == "SCT") merged_sct else merged_lognorm
   DefaultAssay(merged_obj) <- ifelse(method == "SCT", "integrated", "RNA")
 
-  merged_obj <- ScaleData(merged_obj, verbose = FALSE)
-  merged_obj <- RunPCA(merged_obj, npcs = max(dims_list))
-
   for (dim in dims_list) {
     dims_to_use <- 1:dim
-    merged_obj <- RunUMAP(merged_obj, dims = dims_to_use, reduction.name = paste0("umap_", method, "_dims", dim))
-
-    umap_plots <- list()
 
     for (res in resolutions) {
+      cat("🔍 dims:", dim, "res:", res, "\n")
       merged_obj <- FindNeighbors(merged_obj, dims = dims_to_use)
       merged_obj <- FindClusters(merged_obj, resolution = res)
+      merged_obj <- RunUMAP(merged_obj, dims = dims_to_use, reduction.name = paste0("umap_", method, "_dims", dim))
 
-      p <- DimPlot(
-        merged_obj,
-        reduction = paste0("umap_", method, "_dims", dim),
-        group.by = "seurat_clusters",
-        label = TRUE,
-        pt.size = 0.3,
-        repel = TRUE
-      ) +
-        ggtitle(paste("Merged UMAP -", method, "- dims =", dim, "res =", res)) +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        scale_color_viridis_d(option = "turbo")
+      cluster_ids <- Idents(merged_obj)
+      pca_mat <- Embeddings(merged_obj, "pca")[, dims_to_use]
+      clust_tab <- table(cluster_ids)
 
-      umap_plots[[paste0("res_", res)]] <- p
+      count_df <- data.frame(
+        method = method,
+        animal = "merged",
+        dims = dim,
+        resolution = res,
+        cluster = as.integer(names(clust_tab)),
+        cell_count = as.vector(clust_tab)
+      )
+
+      sil_df <- if (length(unique(cluster_ids)) > 1) {
+        sil <- silhouette(as.numeric(cluster_ids), dist(pca_mat))
+        as.data.frame(sil) %>%
+          mutate(cluster = as.integer(cluster_ids)) %>%
+          group_by(cluster) %>%
+          summarise(silhouette_score = mean(sil_width), .groups = "drop")
+      } else {
+        data.frame(cluster = as.integer(names(clust_tab)), silhouette_score = NA_real_)
+      }
+
+      count_df <- left_join(count_df, sil_df, by = "cluster")
+      count_df$is_small_cluster <- count_df$cell_count < small_cluster_threshold
+
+      avg_sil <- tryCatch({
+        if (length(unique(cluster_ids)) > 1) {
+          mean(sil[, "sil_width"], na.rm = TRUE)
+        } else {
+          NA_real_
+        }
+      }, error = function(e) NA_real_)
+
+      count_df$average_silhouette_score <- avg_sil
+
+      merged_cluster_summary <- rbind(merged_cluster_summary, count_df)
     }
-
-    # Save PDF with all resolutions for this dims
-    combined_plot <- wrap_plots(umap_plots, ncol = 2)
-    pdf_name <- file.path(pdf_output_dir, paste0("merged_umap_", method, "_dims", dim, "_multiRes_20250616.pdf"))
-    ggsave(
-      filename = pdf_name,
-      plot = combined_plot,
-      width = 12,
-      height = 4 * ceiling(length(resolutions) / 2),
-      dpi = 600
-    )
-    cat("✅ Saved:", pdf_name, "\n")
   }
 }
+
+# Save summary
+summary_csv <- file.path(tsv_output_dir, "merged_cluster_summary_sct_vs_log.csv")
+write.csv(merged_cluster_summary, summary_csv, row.names = FALSE)
+cat("✅ Merged cluster summary saved to:", summary_csv, "\n")
