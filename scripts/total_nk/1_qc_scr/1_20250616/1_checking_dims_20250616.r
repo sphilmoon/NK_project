@@ -379,13 +379,13 @@ for (method in c("SCT", "LogNormalize")) {
         cluster_summary <- rbind(cluster_summary, count_df)
       }
 
-      # Save combined UMAP PDF
-      pdf_file <- file.path(
-        pdf_output_dir,
-        paste0("individual_umap_", method, "_dims", dim, "_res", res, "_20250616.pdf")
-      )
-      ggsave(pdf_file, wrap_plots(plot_list, ncol = 2), width = 12, height = 10, dpi = 600)
-      cat("✅ Saved:", pdf_file, "\n")
+      # # Save combined UMAP PDF
+      # pdf_file <- file.path(
+      #   pdf_output_dir,
+      #   paste0("individual_umap_", method, "_dims", dim, "_res", res, "_20250616.pdf")
+      # )
+      # ggsave(pdf_file, wrap_plots(plot_list, ncol = 2), width = 12, height = 10, dpi = 600)
+      # cat("✅ Saved:", pdf_file, "\n")
     }
   }
 }
@@ -423,9 +423,6 @@ DefaultAssay(merged_sct) <- "integrated"
 merged_sct <- ScaleData(merged_sct, verbose = FALSE)
 merged_sct <- RunPCA(merged_sct, npcs = max(dims_list))
 
-saveRDS(merged_sct, file.path(rds_output_dir, "merged_totalNK_SCT_20250616.rds"))
-cat("✅ Merged SCT-integrated Seurat object saved.\n")
-
 
 # ------------------------- #
 # Merged Seurat Object - LogNormalize (non-integrated)
@@ -442,10 +439,6 @@ lognorm_seurat_list <- lapply(seurat_objects, function(obj) {
 merged_lognorm <- merge(x = lognorm_seurat_list[[1]], y = lognorm_seurat_list[-1], add.cell.ids = names(lognorm_seurat_list))
 merged_lognorm <- ScaleData(merged_lognorm)
 merged_lognorm <- RunPCA(merged_lognorm, npcs = max(dims_list))
-
-saveRDS(merged_lognorm, file.path(rds_output_dir, "merged_totalNK_LogNorm_20250616.rds"))
-cat("✅ Merged LogNormalized Seurat object saved.\n")
-
 
 
 # ------------------------- #
@@ -520,8 +513,8 @@ cat("✅ Merged summary saved to:", summary_csv, "\n")
 
 # Save both merged SCT and LogNormalized objects
 merged_analysis_list <- list(
-  SCT = merged_obj_sct,
-  LogNormalize = merged_obj_log
+  SCT = merged_sct,
+  LogNormalize = merged_lognorm
 )
 saveRDS(merged_analysis_list, file.path(rds_output_dir, "merged_seurat_analysis_20250616.rds"))
 cat("✅ Saved merged SCT and LogNormalized Seurat objects to RDS.\n")
@@ -578,3 +571,65 @@ cat("✅ Saved merged SCT and LogNormalized Seurat objects to RDS.\n")
 #   }
 # }
 
+
+
+# ------------------------- #
+# Plotting Feature Plots for Individual and Merged Samples (SCT and LogNormalize)
+# ------------------------- #
+features <- c("NCR1", "KLRB1", "PRF1")
+
+# ------------------------- #
+# Individual Feature Plots
+# ------------------------- #
+for (method in c("SCT", "LogNormalize")) {
+  for (animal in names(indie_obj)) {
+    obj <- indie_obj[[animal]]
+
+    for (dim in dims_list) {
+      for (res in resolutions) {
+        reduction_name <- paste0("umap_", method, "_dims", dim)
+
+        if (!reduction_name %in% names(obj@reductions)) next
+
+        plots <- FeaturePlot(obj,
+                             features = features,
+                             reduction = reduction_name,
+                             pt.size = 0.3,
+                             ncol = 3) +
+                 plot_annotation(title = paste(animal, "-", method, "Dims:", dim, "Res:", res))
+
+        file_name <- paste0("featureplots_", animal, "_", method, "_dims", dim, "_res", res, ".pdf")
+        ggsave(file.path(pdf_output_dir, file_name), plots, width = 12, height = 6, dpi = 600)
+        cat("✅ Saved:", file_name, "\n")
+      }
+    }
+  }
+}
+
+# ------------------------- #
+# Merged Feature Plots
+# ------------------------- #
+for (method in c("SCT", "LogNormalize")) {
+  obj <- if (method == "SCT") merged_obj$SCT else merged_obj$LogNormalize
+  assay_name <- ifelse(method == "SCT", "integrated", "RNA")
+  DefaultAssay(obj) <- assay_name
+
+  for (dim in dims_list) {
+    for (res in resolutions) {
+      reduction_name <- paste0("umap_", method, "_dims", dim)
+
+      if (!reduction_name %in% names(obj@reductions)) next
+
+      plots <- FeaturePlot(obj,
+                           features = features,
+                           reduction = reduction_name,
+                           pt.size = 0.3,
+                           ncol = 3) +
+               plot_annotation(title = paste("Merged -", method, "Dims:", dim, "Res:", res))
+
+      file_name <- paste0("featureplots_merged_", method, "_dims", dim, "_res", res, ".pdf")
+      ggsave(file.path(pdf_output_dir, file_name), plots, width = 12, height = 6, dpi = 600)
+      cat("✅ Saved:", file_name, "\n")
+    }
+  }
+}
