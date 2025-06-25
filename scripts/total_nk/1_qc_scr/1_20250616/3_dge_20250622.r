@@ -46,6 +46,11 @@ perform_dge <- function(seurat_obj, sample_id, method, dims, res) {
   Idents(seurat_obj) <- seurat_obj[[cluster_col]][, 1]
   DefaultAssay(seurat_obj) <- assay
 
+  # 🔧 Fix for JoinLayers warning (only needed for RNA assay)
+  if (assay == "RNA") {
+    seurat_obj <- JoinLayers(seurat_obj)
+  }
+
   markers <- tryCatch({
     FindAllMarkers(seurat_obj, logfc.threshold = 0.25, min.pct = 0.1, only.pos = TRUE)
   }, error = function(e) {
@@ -53,7 +58,8 @@ perform_dge <- function(seurat_obj, sample_id, method, dims, res) {
     return(NULL)
   })
 
-  if (!is.null(markers)) {
+  # 🔐 Check that markers has valid structure
+  if (!is.null(markers) && "cluster" %in% colnames(markers)) {
     n_genes <- markers %>% group_by(cluster) %>% tally(name = "n_DEGs")
     n_clusters <- length(unique(Idents(seurat_obj)))
     n_genes$animal <- sample_id
@@ -63,6 +69,7 @@ perform_dge <- function(seurat_obj, sample_id, method, dims, res) {
     n_genes$n_clusters <- n_clusters
     return(n_genes)
   } else {
+    message("⚠️ No valid DEGs found for:", sample_id, "|", method, "| dims =", dims, "| res =", res)
     return(NULL)
   }
 }
@@ -84,14 +91,20 @@ for (animal in names(indie_rds)) {
   }
 }
 
-# --------------------------- #
-# Save Updated Summary Files for Individual Samples
+# Append DEG counts to summary tables
+dge_indie <- dge_summary %>% filter(animal != "merged")
+
+# Join on shared keys
+indie_summary_augmented <- indie_summary %>%
+  left_join(dge_indie, by = c("animal", "method", "dims", "resolution", "cluster"))
+
+
+# ✅ Now safe to save to CSV and RDS
 # --------------------------- #
 write.csv(indie_summary_augmented, file.path(tsv_output_dir, "indie_cluster_summary_sct_vs_log_dge.csv"), row.names = FALSE)
-
-# Save as RDS for future use
 saveRDS(indie_summary_augmented, file.path(tsv_output_dir, "indie_cluster_summary_sct_vs_log_dge.rds"))
 cat("💾 Individual samples DGE - RDS files saved for downstream analysis.\n")
+
 
 # --------------------------- #
 # Run DGE for Merged Object
@@ -112,27 +125,18 @@ for (method in c("SCT", "LogNormalize")) {
 # --------------------------- #
 # Append DEG counts to summary tables
 # --------------------------- #
-
 cat("🧾 Merging DEG results with cluster summaries...\n")
+
 # Separate into individual vs merged
-dge_indie <- dge_summary %>% filter(animal != "merged")
 dge_merged <- dge_summary %>% filter(animal == "merged")
 
 # Join on shared keys
-indie_summary_augmented <- indie_summary %>%
-  left_join(dge_indie, by = c("animal", "method", "dims", "resolution", "cluster"))
-
 merged_summary_augmented <- merged_summary %>%
   left_join(dge_merged, by = c("animal", "method", "dims", "resolution", "cluster"))
 
 # --------------------------- #
-# Save Updated Summary Files for the merged object
+# ✅ Now safe to save to CSV and RDS
 # --------------------------- #
 write.csv(merged_summary_augmented, file.path(tsv_output_dir, "merged_cluster_summary_sct_vs_log_dge.csv"), row.names = FALSE)
-cat("✅ Appended DEG counts and saved updated summary files.\n")
-
-# --------------------------- #
-# Save as RDS for future use
-# --------------------------- #
 saveRDS(merged_summary_augmented, file.path(tsv_output_dir, "merged_cluster_summary_sct_vs_log_dge.rds"))
 cat("💾 Merged samples DGE - RDS files saved for downstream analysis.\n")
