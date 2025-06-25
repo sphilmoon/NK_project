@@ -85,6 +85,15 @@ for (animal in names(indie_rds)) {
 }
 
 # --------------------------- #
+# Save Updated Summary Files for Individual Samples
+# --------------------------- #
+write.csv(indie_summary_augmented, file.path(tsv_output_dir, "indie_cluster_summary_sct_vs_log_dge.csv"), row.names = FALSE)
+
+# Save as RDS for future use
+saveRDS(indie_summary_augmented, file.path(tsv_output_dir, "indie_cluster_summary_sct_vs_log_dge.rds"))
+cat("💾 Individual samples DGE - RDS files saved for downstream analysis.\n")
+
+# --------------------------- #
 # Run DGE for Merged Object
 # --------------------------- #
 cat("🔗 Running DGE for merged samples...\n")
@@ -117,8 +126,13 @@ merged_summary_augmented <- merged_summary %>%
   left_join(dge_merged, by = c("animal", "method", "dims", "resolution", "cluster"))
 
 # --------------------------- #
-# Save Updated Summary Files
+# Save Updated Summary Files for the merged object
 # --------------------------- #
-write.csv(indie_summary_augmented, file.path(tsv_output_dir, "indie_cluster_summary_sct_vs_log_dge.csv"), row.names = FALSE)
 write.csv(merged_summary_augmented, file.path(tsv_output_dir, "merged_cluster_summary_sct_vs_log_dge.csv"), row.names = FALSE)
 cat("✅ Appended DEG counts and saved updated summary files.\n")
+
+# --------------------------- #
+# Save as RDS for future use
+# --------------------------- #
+saveRDS(merged_summary_augmented, file.path(tsv_output_dir, "merged_cluster_summary_sct_vs_log_dge.rds"))
+cat("💾 Merged samples DGE - RDS files saved for downstream analysis.\n")
