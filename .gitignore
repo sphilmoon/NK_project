@@ -16,5 +16,6 @@ outputs/nkp46_outputs/grok
 outputs/totalNK_outputs/2_umap/wo_51_52/csv/metadata_with_genes_dims25_res0.3.csv
 
 outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/merged
-outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/individual
+outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/individual/SCT
+outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/individual/Log*
 outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/test*
