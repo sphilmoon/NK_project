@@ -49,7 +49,7 @@ for (method in methods) {
 }
 
 # --------------------------- #
-# Format metadata
+# Format metadata & order clusters
 # --------------------------- #
 deg_summary <- deg_summary %>%
   mutate(
@@ -59,6 +59,11 @@ deg_summary <- deg_summary %>%
     animal = factor(animal, levels = animals),
     method = factor(method, levels = methods)
   )
+
+# Set cluster order: C0, C1, C2, ..., C20
+unique_clusters <- sort(as.numeric(str_extract(unique(deg_summary$cluster), "\\d+")))
+ordered_cluster_levels <- paste0("C", unique_clusters)
+deg_summary$cluster <- factor(deg_summary$cluster, levels = ordered_cluster_levels)
 
 # --------------------------- #
 # Plot & save for each method
@@ -78,7 +83,7 @@ for (method in methods) {
           strip.text = element_text(size = 10))
 
   pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_", method, ".pdf"))
-  ggsave(pdf_file, plot = p, width = 14, height = 6, units = "in")
+  ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
 
   cat("✅ DEG plot saved to:", pdf_file, "\n")
 }
