@@ -34,7 +34,11 @@ for (method in methods) {
 
         df <- read_csv(file, show_col_types = FALSE)
 
-        deg_counts <- df %>%
+        # Filter DEGs based on significance (adjust p-value < 0.05 and log2FC > 0.25)
+        df_filtered <- df %>%
+          filter(p_val_adj < 0.05, avg_log2FC > 0.25)
+
+        deg_counts <- df_filtered %>%
           group_by(cluster) %>%
           summarise(n_DEGs = n(), .groups = "drop") %>%
           mutate(animal = animal,
@@ -60,7 +64,7 @@ deg_summary <- deg_summary %>%
     method = factor(method, levels = methods)
   )
 
-# Set cluster order: C0, C1, C2, ..., C20
+# Order cluster labels numerically: C0, C1, ..., C20
 unique_clusters <- sort(as.numeric(str_extract(unique(deg_summary$cluster), "\\d+")))
 ordered_cluster_levels <- paste0("C", unique_clusters)
 deg_summary$cluster <- factor(deg_summary$cluster, levels = ordered_cluster_levels)
@@ -75,8 +79,8 @@ for (method in methods) {
     geom_point(size = 2) +
     geom_line(linewidth = 0.8, alpha = 0.7) +
     facet_grid(res ~ dims, scales = "free_x", space = "free_x") +
-    labs(title = paste("Number of DEGs per Cluster (", method, ")", sep = ""),
-         x = "Cluster", y = "# DEGs", color = "Animal") +
+    labs(title = paste("Number of Significant DEGs per Cluster (", method, ")", sep = ""),
+         x = "Cluster", y = "# DEGs (adj p < 0.05, logFC > 0.25)", color = "Animal") +
     theme_minimal() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1),
           panel.grid.minor = element_blank(),
