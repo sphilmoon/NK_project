@@ -78,7 +78,7 @@ for (method in methods) {
           strip.text = element_text(size = 10))
 
   pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_", method, ".pdf"))
-  ggsave(pdf_file, plot = p, width = 12, height = 6, units = "in")
+  ggsave(pdf_file, plot = p, width = 14, height = 6, units = "in")
 
   cat("✅ DEG plot saved to:", pdf_file, "\n")
 }
