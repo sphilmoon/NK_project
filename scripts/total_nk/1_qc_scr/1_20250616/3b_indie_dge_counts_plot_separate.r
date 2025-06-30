@@ -38,13 +38,17 @@ for (method in methods) {
         df_filtered <- df %>%
           filter(p_val_adj < 0.05, avg_log2FC > 0.25)
 
+        # Add unique cluster ID per dim/res
         deg_counts <- df_filtered %>%
           group_by(cluster) %>%
           summarise(n_DEGs = n(), .groups = "drop") %>%
-          mutate(animal = animal,
-                 dims = dims,
-                 res = res,
-                 method = method)
+          mutate(
+            dims = dims,
+            res = res,
+            method = method,
+            animal = animal,
+            cluster_label = paste0("D", dims, "_R", res, "_C", cluster)
+          )
 
         deg_summary <- bind_rows(deg_summary, deg_counts)
       }
@@ -53,21 +57,15 @@ for (method in methods) {
 }
 
 # --------------------------- #
-# Format metadata & order clusters
+# Prepare for plotting
 # --------------------------- #
 deg_summary <- deg_summary %>%
   mutate(
-    cluster = paste0("C", cluster),
-    dims = factor(dims),
-    res = factor(res),
+    dims = factor(dims, levels = dims_list),
+    res = factor(res, levels = res_list),
     animal = factor(animal, levels = animals),
-    method = factor(method, levels = methods)
+    cluster_label = factor(cluster_label, levels = unique(cluster_label))
   )
-
-# Order cluster labels numerically: C0, C1, ..., C20
-unique_clusters <- sort(as.numeric(str_extract(unique(deg_summary$cluster), "\\d+")))
-ordered_cluster_levels <- paste0("C", unique_clusters)
-deg_summary$cluster <- factor(deg_summary$cluster, levels = ordered_cluster_levels)
 
 # --------------------------- #
 # Plot & save for each method
@@ -75,19 +73,23 @@ deg_summary$cluster <- factor(deg_summary$cluster, levels = ordered_cluster_leve
 for (method in methods) {
   subset_df <- deg_summary %>% filter(method == !!method)
 
-  p <- ggplot(subset_df, aes(x = cluster, y = n_DEGs, group = animal, color = animal)) +
+  p <- ggplot(subset_df, aes(x = cluster_label, y = n_DEGs, group = animal, color = animal)) +
     geom_point(size = 2) +
     geom_line(linewidth = 0.8, alpha = 0.7) +
-    facet_grid(res ~ dims, scales = "free_x", space = "free_x") +
-    labs(title = paste("Number of Significant DEGs per Cluster (", method, ")", sep = ""),
-         x = "Cluster", y = "# DEGs (adj p < 0.05, logFC > 0.25)", color = "Animal") +
+    facet_wrap(~ interaction(dims, res), scales = "free_x", ncol = 1) +
+    labs(
+      title = paste("Number of Significant DEGs per Cluster (", method, ")", sep = ""),
+      x = "Cluster (Dims × Res)", y = "# DEGs (adj p < 0.05, logFC > 0.25)", color = "Animal"
+    ) +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          panel.grid.minor = element_blank(),
-          strip.text = element_text(size = 10))
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+      panel.grid.minor = element_blank(),
+      strip.text = element_text(size = 10)
+    )
 
-  pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_", method, ".pdf"))
-  ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
+  pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_", method, "_FIXED.pdf"))
+  ggsave(pdf_file, plot = p, width = 16, height = 10, units = "in")
 
-  cat("✅ DEG plot saved to:", pdf_file, "\n")
+  cat("✅ Fixed DEG plot saved to:", pdf_file, "\n")
 }
