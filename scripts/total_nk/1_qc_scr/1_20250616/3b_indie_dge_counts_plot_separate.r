@@ -34,20 +34,20 @@ for (method in methods) {
 
         df <- read_csv(file, show_col_types = FALSE)
 
-        # Filter DEGs based on significance (adjust p-value < 0.05 and log2FC > 0.25)
+        # Filter DEGs based on significance
         df_filtered <- df %>%
           filter(p_val_adj < 0.05, avg_log2FC > 0.25)
 
-        # Add unique cluster ID per dim/res
+        # Count DEGs per cluster
         deg_counts <- df_filtered %>%
           group_by(cluster) %>%
           summarise(n_DEGs = n(), .groups = "drop") %>%
           mutate(
-            dims = dims,
-            res = res,
-            method = method,
             animal = animal,
-            cluster_label = paste0("D", dims, "_R", res, "_C", cluster)
+            dims = dims,
+            resolution = res,
+            method = method,
+            cluster = paste0("C", cluster)
           )
 
         deg_summary <- bind_rows(deg_summary, deg_counts)
@@ -57,39 +57,40 @@ for (method in methods) {
 }
 
 # --------------------------- #
-# Prepare for plotting
+# Factor formatting
 # --------------------------- #
 deg_summary <- deg_summary %>%
   mutate(
+    cluster = factor(cluster, levels = paste0("C", 0:30)),  # support up to C30
     dims = factor(dims, levels = dims_list),
-    res = factor(res, levels = res_list),
+    resolution = factor(resolution, levels = as.character(res_list)),
     animal = factor(animal, levels = animals),
-    cluster_label = factor(cluster_label, levels = unique(cluster_label))
+    method = factor(method, levels = methods)
   )
 
 # --------------------------- #
 # Plot & save for each method
 # --------------------------- #
 for (method in methods) {
-  subset_df <- deg_summary %>% filter(method == !!method)
+  subset_df <- deg_summary %>% filter(method == method)
 
-  p <- ggplot(subset_df, aes(x = cluster_label, y = n_DEGs, group = animal, color = animal)) +
-    geom_point(size = 2) +
-    geom_line(linewidth = 0.8, alpha = 0.7) +
-    facet_wrap(~ interaction(dims, res), scales = "free_x", ncol = 1) +
+  p <- ggplot(subset_df, aes(x = cluster, y = n_DEGs, color = animal, group = animal)) +
+    geom_point(position = position_dodge(width = 0.6), size = 2) +
+    geom_line(position = position_dodge(width = 0.6), linewidth = 0.8, alpha = 0.7) +
+    facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
     labs(
       title = paste("Number of Significant DEGs per Cluster (", method, ")", sep = ""),
-      x = "Cluster (Dims × Res)", y = "# DEGs (adj p < 0.05, logFC > 0.25)", color = "Animal"
+      x = "Cluster", y = "# DEGs (adj p < 0.05, logFC > 0.25)", color = "Animal"
     ) +
     theme_minimal() +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-      panel.grid.minor = element_blank(),
-      strip.text = element_text(size = 10)
+      strip.text = element_text(size = 10),
+      panel.grid.minor = element_blank()
     )
 
-  pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_", method, "_FIXED.pdf"))
-  ggsave(pdf_file, plot = p, width = 16, height = 10, units = "in")
+  pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_", method, "_fixed.pdf"))
+  ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
 
-  cat("✅ Fixed DEG plot saved to:", pdf_file, "\n")
+  cat("✅ Fixed DEG scatter plot saved to:", pdf_file, "\n")
 }
