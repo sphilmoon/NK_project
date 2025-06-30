@@ -7,78 +7,58 @@ library(stringr)
 # Paths
 # --------------------------- #
 output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs"
-pdf_output_dir <- file.path(output_dir, "pdf")
+pdf_output_dir <- file.path(output_dir, "pdf", "3_dge_heatmap")
 dir.create(pdf_output_dir, recursive = TRUE, showWarnings = FALSE)
-diag_output_dir <- file.path(output_dir, "diagnostic")
-dir.create(diag_output_dir, recursive = TRUE, showWarnings = FALSE)
 
 # --------------------------- #
-# Load data
+# Load CSV
 # --------------------------- #
-base_dir <- file.path(output_dir, "tsv", "indie_cluster_summary_sct_vs_log_dge.csv")
-if (!file.exists(base_dir)) stop("File not found at: ", base_dir)
-df <- read_csv(base_dir, show_col_types = FALSE)
+csv_file <- file.path(output_dir, "tsv", "indie_cluster_summary_sct_vs_log_dge.csv")
+df <- read_csv(csv_file, show_col_types = FALSE)
 
 # --------------------------- #
-# Filter and prepare data
+# Clean & Prepare
 # --------------------------- #
-cell_summary <- df %>%
+df_clean <- df %>%
   mutate(
-    cluster = paste0("C", cluster),  # Format cluster as C0, C1, etc.
+    cluster_id = paste0(animal, "_C", cluster),         # Unique x-axis value
     dims = factor(dims),
     resolution = factor(resolution),
+    method = factor(method),
     animal = factor(animal),
-    method = factor(method)
+    cluster = factor(paste0("C", cluster))
   )
 
-# Order cluster labels numerically: C0, C1, ..., C20
-unique_clusters <- sort(as.numeric(str_extract(unique(cell_summary$cluster), "\\d+")))
-ordered_cluster_levels <- paste0("C", unique_clusters)
-cell_summary$cluster <- factor(cell_summary$cluster, levels = ordered_cluster_levels)
-
-# Diagnostic check for duplicates
-duplicate_check <- cell_summary %>%
-  group_by(method, animal, dims, resolution, cluster) %>%
-  summarise(n = n(), .groups = "drop") %>%
-  filter(n > 1)
-if (nrow(duplicate_check) > 0) {
-  warning("Duplicate entries found: ", paste(capture.output(print(duplicate_check)), collapse = "\n"))
-} else {
-  cat("No duplicates found in the dataset.\n")
-}
+# Reorder cluster_id factor levels numerically by cluster
+df_clean$cluster_num <- as.numeric(str_extract(df_clean$cluster, "\\d+"))
+df_clean <- df_clean %>%
+  arrange(animal, cluster_num) %>%
+  mutate(cluster_id = factor(cluster_id, levels = unique(cluster_id)))  # Keep ordering
 
 # --------------------------- #
-# Plot & save for each method
+# Plot and Save
 # --------------------------- #
 methods <- c("SCT", "LogNormalize")
-for (method in methods) {
-  # Filter data for the current method
-  subset_df <- cell_summary %>% filter(method == method)
 
-  # Diagnostic: Print data for the specific case (animal28, dims=10, resolution=0.5, cluster=C1)
-  diag_df <- subset_df %>%
-    filter(animal == "animal28", dims == 10, resolution == 0.5, cluster == "C1")
-  cat("Data for animal28, dims=10, resolution=0.5, cluster=C1:\n")
-  print(diag_df)
-  write_csv(diag_df, file.path(diag_output_dir, paste0("diag_", method, "_animal28_dims10_res0.5_C1.csv")))
+for (m in methods) {
+  plot_df <- df_clean %>% filter(method == m)
 
-  # Plot with explicit faceting and point verification
-  p <- ggplot(subset_df, aes(x = cluster, y = cell_count, color = animal, group = animal)) +
-   geom_point(position = position_dodge(width = 0.5), size = 2) +
-   facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
-   labs(title = paste("Cell Count per Cluster (", method, ")", sep = ""),
-         x = "Cluster", y = "Cell Count", color = "Animal") +
-   theme_minimal() +
-   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-          panel.grid.minor = element_blank(),
-         strip.text = element_text(size = 10))
+  p <- ggplot(plot_df, aes(x = cluster_id, y = cell_count, color = animal, group = animal)) +
+    geom_point(size = 2.2) +
+    facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
+    labs(
+      title = paste("Cell Count per Cluster (", m, ")"),
+      x = "Cluster (Animal-wise)", y = "Cell Count", color = "Animal"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+      strip.text = element_text(size = 10),
+      panel.grid.minor = element_blank()
+    )
 
+  pdf_file <- file.path(pdf_output_dir, paste0("3_cell_count_per_cluster_Fixed_", m, ".pdf"))
+  ggsave(pdf_file, p, width = 18, height = 6, units = "in")
 
-  pdf_file <- file.path(pdf_output_dir, paste0("3_cell_count_per_cluster_FIXED_", method, ".pdf"))
-  ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
-
-  # Save plotted data for inspection
-  write_csv(subset_df, file.path(diag_output_dir, paste0("plotted_", method, ".csv")))
-
-  cat("✅ Cell count plot saved to:", pdf_file, "\n")
+  cat("✅ Saved:", pdf_file, "\n")
 }
