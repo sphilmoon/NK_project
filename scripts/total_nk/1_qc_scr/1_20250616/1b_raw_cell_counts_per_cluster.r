@@ -34,16 +34,25 @@ unique_clusters <- sort(as.numeric(str_extract(unique(cell_summary$cluster), "\\
 ordered_cluster_levels <- paste0("C", unique_clusters)
 cell_summary$cluster <- factor(cell_summary$cluster, levels = ordered_cluster_levels)
 
+# Diagnostic check for duplicates
+duplicate_check <- cell_summary %>%
+  group_by(method, animal, dims, resolution, cluster) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  filter(n > 1)
+if (nrow(duplicate_check) > 0) {
+  warning("Duplicate entries found: ", paste(capture.output(print(duplicate_check)), collapse = "\n"))
+}
+
 # --------------------------- #
 # Plot & save for each method
 # --------------------------- #
 methods <- c("SCT", "LogNormalize")
 for (method in methods) {
-  subset_df <- cell_summary %>% filter(method == method)  # Removed unnecessary !! operator
+  subset_df <- cell_summary %>% filter(method == method)
 
-  p <- ggplot(subset_df, aes(x = cluster, y = cell_count, group = animal, color = animal)) +
+  # Ensure unique points per cluster within each facet
+  p <- ggplot(subset_df, aes(x = cluster, y = cell_count, color = animal)) +
     geom_point(size = 2) +
-    geom_line(linewidth = 0.8, alpha = 0.7) +
     facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
     labs(title = paste("Cell Count per Cluster (", method, ")", sep = ""),
          x = "Cluster", y = "Cell Count", color = "Animal") +
@@ -52,7 +61,7 @@ for (method in methods) {
           panel.grid.minor = element_blank(),
           strip.text = element_text(size = 10))
 
-  pdf_file <- file.path(pdf_output_dir, paste0("3_cell_count_per_cluster_", method, ".pdf"))
+  pdf_file <- file.path(pdf_output_dir, paste0("3_cell_count_per_cluster_FIXED_", method, ".pdf"))
   ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
 
   cat("✅ Cell count plot saved to:", pdf_file, "\n")
