@@ -63,15 +63,16 @@ for (method in methods) {
   write_csv(diag_df, file.path(diag_output_dir, paste0("diag_", method, "_animal28_dims10_res0.5_C1.csv")))
 
   # Plot with explicit faceting and point verification
-  p <- ggplot(subset_df, aes(x = cluster, y = cell_count, color = animal)) +
-    geom_point(size = 2) +
-    facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
-    labs(title = paste("Cell Count per Cluster (", method, ")", sep = ""),
+  p <- ggplot(subset_df, aes(x = cluster, y = cell_count, color = animal, group = animal)) +
+   geom_point(position = position_dodge(width = 0.5), size = 2) +
+   facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
+   labs(title = paste("Cell Count per Cluster (", method, ")", sep = ""),
          x = "Cluster", y = "Cell Count", color = "Animal") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+   theme_minimal() +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1),
           panel.grid.minor = element_blank(),
-          strip.text = element_text(size = 10))
+         strip.text = element_text(size = 10))
+
 
   pdf_file <- file.path(pdf_output_dir, paste0("3_cell_count_per_cluster_FIXED_", method, ".pdf"))
   ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
