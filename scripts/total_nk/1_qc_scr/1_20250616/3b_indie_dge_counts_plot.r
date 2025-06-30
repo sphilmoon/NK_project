@@ -6,10 +6,6 @@ library(stringr)
 # --------------------------- #
 # Paths
 # --------------------------- #
-output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs"
-pdf_output_dir <- file.path(output_dir, "pdf")
-heatmap_output_dir <- file.path(pdf_output_dir, "3_dge_heatmap")
-
 base_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/individual"
 methods <- c("SCT", "LogNormalize")
 animals <- c("animal25", "animal26", "animal27", "animal28")
@@ -76,8 +72,8 @@ p <- ggplot(deg_summary, aes(x = cluster, y = n_DEGs, group = animal, color = an
 # --------------------------- #
 # Save as 600 dpi PDF
 # --------------------------- #
-heatmap_output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf"
-pdf_file <- file.path(heatmap_output_dir, "4_DEG_counts_per_cluster.pdf")
+output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf"
+pdf_file <- file.path(output_dir, "4_DEG_counts_per_cluster.pdf")
 ggsave(pdf_file, plot = p, width = 12, height = 6, units = "in")
 
 cat("✅ DEG plot saved to:", pdf_file, "\n")
