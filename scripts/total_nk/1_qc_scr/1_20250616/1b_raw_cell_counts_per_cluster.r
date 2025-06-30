@@ -9,6 +9,8 @@ library(stringr)
 output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs"
 pdf_output_dir <- file.path(output_dir, "pdf")
 dir.create(pdf_output_dir, recursive = TRUE, showWarnings = FALSE)
+diag_output_dir <- file.path(output_dir, "diagnostic")
+dir.create(diag_output_dir, recursive = TRUE, showWarnings = FALSE)
 
 # --------------------------- #
 # Load data
@@ -41,6 +43,8 @@ duplicate_check <- cell_summary %>%
   filter(n > 1)
 if (nrow(duplicate_check) > 0) {
   warning("Duplicate entries found: ", paste(capture.output(print(duplicate_check)), collapse = "\n"))
+} else {
+  cat("No duplicates found in the dataset.\n")
 }
 
 # --------------------------- #
@@ -48,9 +52,17 @@ if (nrow(duplicate_check) > 0) {
 # --------------------------- #
 methods <- c("SCT", "LogNormalize")
 for (method in methods) {
+  # Filter data for the current method
   subset_df <- cell_summary %>% filter(method == method)
 
-  # Ensure unique points per cluster within each facet
+  # Diagnostic: Print data for the specific case (animal28, dims=10, resolution=0.5, cluster=C1)
+  diag_df <- subset_df %>%
+    filter(animal == "animal28", dims == 10, resolution == 0.5, cluster == "C1")
+  cat("Data for animal28, dims=10, resolution=0.5, cluster=C1:\n")
+  print(diag_df)
+  write_csv(diag_df, file.path(diag_output_dir, paste0("diag_", method, "_animal28_dims10_res0.5_C1.csv")))
+
+  # Plot with explicit faceting and point verification
   p <- ggplot(subset_df, aes(x = cluster, y = cell_count, color = animal)) +
     geom_point(size = 2) +
     facet_grid(resolution ~ dims, scales = "free_x", space = "free_x") +
@@ -63,6 +75,9 @@ for (method in methods) {
 
   pdf_file <- file.path(pdf_output_dir, paste0("3_cell_count_per_cluster_FIXED_", method, ".pdf"))
   ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
+
+  # Save plotted data for inspection
+  write_csv(subset_df, file.path(diag_output_dir, paste0("plotted_", method, ".csv")))
 
   cat("✅ Cell count plot saved to:", pdf_file, "\n")
 }

@@ -1,0 +1,3 @@
+method,animal,dims,resolution,cluster,cell_count,silhouette_score,is_small_cluster,average_silhouette_score,cumulative_variance,n_DEGs
+SCT,animal28,10,0.5,C1,2745,0.0952579846173054,FALSE,0.156555226139744,0.787978246691232,300
+LogNormalize,animal28,10,0.5,C1,3358,0.261844945340073,FALSE,0.236974736103288,0.722219845508018,273
