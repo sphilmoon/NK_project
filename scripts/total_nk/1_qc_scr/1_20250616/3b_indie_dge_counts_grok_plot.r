@@ -30,11 +30,14 @@ for (method in methods) {
     for (dims in dims_list) {
       for (res in res_list) {
         file <- file.path(method_dir, paste0("markers_", animal, "_", method, "_dims", dims, "_res", res, ".csv"))
-        if (!file.exists(file)) next
+        if (!file.exists(file)) {
+          warning("File not found: ", file)
+          next
+        }
 
         df <- read_csv(file, show_col_types = FALSE)
 
-        # Filter DEGs based on significance (adjust p-value < 0.05 and log2FC > 0.25)
+        # Filter DEGs based on significance
         df_filtered <- df %>%
           filter(p_val_adj < 0.05, avg_log2FC > 0.25)
 
@@ -62,15 +65,23 @@ deg_summary <- deg_summary %>%
     res = factor(res, levels = res_list),
     animal = factor(animal, levels = animals),
     method = factor(method, levels = methods)
-  )
+  ) %>%
+  # Validate that all expected dim-res combinations are present
+  complete(dims, res, method, animal, cluster, fill = list(n_DEGs = 0))
 
 # Order cluster labels numerically: C0, C1, ..., C20
 unique_clusters <- sort(as.numeric(str_extract(unique(deg_summary$cluster), "\\d+")))
 ordered_cluster_levels <- paste0("C", unique_clusters)
 deg_summary$cluster <- factor(deg_summary$cluster, levels = ordered_cluster_levels)
 
-# Diagnostic check for data integrity
-cat("Unique dim-res combinations in deg_summary:", nrow(distinct(deg_summary, dims, res)), "\n")
+# Diagnostic check
+expected_combinations <- length(dims_list) * length(res_list) * length(methods) * length(animals) * length(unique_clusters)
+actual_combinations <- nrow(distinct(deg_summary, dims, res, method, animal, cluster))
+cat("Expected dim-res-method-animal-cluster combinations:", expected_combinations, "\n")
+cat("Actual combinations in deg_summary:", actual_combinations, "\n")
+if (actual_combinations < expected_combinations) {
+  warning("Missing combinations detected. Check input CSV files.")
+}
 
 # --------------------------- #
 # Plot & save for each method
@@ -78,9 +89,10 @@ cat("Unique dim-res combinations in deg_summary:", nrow(distinct(deg_summary, di
 for (method in methods) {
   subset_df <- deg_summary %>% filter(method == method)
 
-  # Filter data for each specific dim and res combination within the facet
+  # Create plot with data filtered per facet
   p <- ggplot(subset_df, aes(x = cluster, y = n_DEGs, color = animal)) +
     geom_point(size = 2) +
+    # Filter data for each facet dynamically
     facet_grid(res ~ dims, scales = "free_x", space = "free_x") +
     labs(title = paste("Number of Significant DEGs per Cluster (", method, ")", sep = ""),
          x = "Cluster", y = "# DEGs (adj p < 0.05, logFC > 0.25)", color = "Animal") +
@@ -89,7 +101,7 @@ for (method in methods) {
           panel.grid.minor = element_blank(),
           strip.text = element_text(size = 10))
 
-  pdf_file <- file.path(pdf_output_dir, paste0("4_indie_DEG_counts_per_cluster_grk_", method, ".pdf"))
+  pdf_file <- file.path(pdf_output_dir, paste0("4_DEG_counts_per_cluster_grk_fixed_", method, ".pdf"))
   ggsave(pdf_file, plot = p, width = 16, height = 6, units = "in")
 
   cat("✅ DEG plot saved to:", pdf_file, "\n")
