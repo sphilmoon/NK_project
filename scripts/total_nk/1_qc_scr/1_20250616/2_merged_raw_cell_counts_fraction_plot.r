@@ -7,10 +7,21 @@ library(ggplot2)
 # --------------------------- #
 output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs"
 rds_file <- file.path(output_dir, "rds", "merged_seurat_analysis_20250616.rds")
+
+# Define and create PDF directory
 pdf_dir <- file.path(output_dir, "pdf", "3_merged_DEGs_outs")
 dir.create(pdf_dir, recursive = TRUE, showWarnings = FALSE)
-pdf_out <- file.path(pdf_dir, "cluster_fraction_scatterplot_merged_fixed.pdf")
+# Define output PDF file path
+pdf_out <- file.path(pdf_dir, "cluster_fraction_scatterplot_merged.pdf")
 
+# Define and create TSV directory
+tsv_dir <- file.path(output_dir, "tsv", "merged")
+dir.create(tsv_dir, recursive = TRUE, showWarnings = FALSE)
+# Define output CSV files
+csv_summary <- file.path(tsv_dir, "cluster_fraction_summary_merged.csv")
+csv_flags <- file.path(tsv_dir, "low_fraction_flags_merged.csv")
+
+# Define dimensions and resolutions to test
 dims_list <- c(10, 15, 20, 25, 30)
 res_list <- c(0.25, 0.5, 0.75)
 
@@ -18,7 +29,7 @@ res_list <- c(0.25, 0.5, 0.75)
 # Load Merged Seurat Object
 # --------------------------- #
 merged_rds <- readRDS(rds_file)
-merged_obj <- merged_rds[["SCT"]]  # or [["LogNormalize"]] if needed
+merged_obj <- merged_rds[["SCT"]]
 
 # --------------------------- #
 # Initialize collector
@@ -32,30 +43,29 @@ for (dims in dims_list) {
   for (res in res_list) {
     cat("📊 Processing dims =", dims, "| res =", res, "\n")
 
-    # Re-run dimensional reduction and clustering
+    # Re-run clustering
     merged_obj <- FindNeighbors(merged_obj, dims = 1:dims, verbose = FALSE)
     merged_obj <- FindClusters(merged_obj, resolution = res, verbose = FALSE)
 
-    # Save unique clustering label
+    # Create unique label
     cluster_col <- paste0("integrated_snn_res.d", dims, "_r", res)
     merged_obj[[cluster_col]] <- merged_obj$seurat_clusters
-
-    # Assign identities for downstream table building
     merged_obj$cluster_tmp <- as.character(merged_obj[[cluster_col]][, 1])
     Idents(merged_obj) <- "cluster_tmp"
 
-    # Cell count per cluster/sample → compute fraction
+    # Cell count per cluster per animal
     df <- table(Cluster = merged_obj$cluster_tmp, Animal = merged_obj$animal) %>%
       as.data.frame() %>%
       group_by(Cluster) %>%
       mutate(
-        Fraction = Freq / sum(Freq),
+        Count = Freq,
+        Fraction = Count / sum(Count),
         dims = dims,
         resolution = res
       ) %>%
       ungroup()
 
-    # Format cluster as C0, C1, ...
+    # Format cluster labels
     df <- df %>%
       mutate(
         Cluster_numeric = as.numeric(as.character(Cluster)),
@@ -63,10 +73,22 @@ for (dims in dims_list) {
         cluster = factor(cluster, levels = paste0("C", sort(unique(Cluster_numeric))))
       )
 
-    # Append
     all_frac <- bind_rows(all_frac, df)
   }
 }
+
+# --------------------------- #
+# Save summary & flags
+# --------------------------- #
+cluster_summary <- all_frac %>%
+  select(Cluster, Animal, Count, Fraction, dims, resolution)
+
+write.csv(cluster_summary, csv_summary, row.names = FALSE)
+cat("✅ Saved cluster fraction summary to:", csv_summary, "\n")
+
+low_fraction_flags <- cluster_summary %>% filter(Fraction < 0.05)
+write.csv(low_fraction_flags, csv_flags, row.names = FALSE)
+cat("⚠️ Saved low fraction warnings to:", csv_flags, "\n")
 
 # --------------------------- #
 # Plot: stacked scatter plot
@@ -86,8 +108,6 @@ p <- ggplot(all_frac, aes(x = cluster, y = Fraction, color = Animal, group = Ani
     panel.grid.minor = element_blank()
   )
 
-# --------------------------- #
-# Save output
-# --------------------------- #
+# Save plot
 ggsave(pdf_out, plot = p, width = 16, height = 6)
 cat("✅ Saved scatter plot to:", pdf_out, "\n")
