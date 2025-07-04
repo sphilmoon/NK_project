@@ -14,7 +14,7 @@ module load docker
 # define paths
 HOST_DATA_DIR="/mnt/lustre/RDS-live/moon/ephemeral/NK_project"
 CONTAINER_DATA_DIR="/home"
-R_SCRIPT="/scripts/total_nk/1_qc_scr/1_20250616/2_merged_raw_cell_counts_fraction_plot_TEST.r"
+R_SCRIPT="/scripts/total_nk/1_qc_scr/1_20250616/3a_merged_DEGs_fractions_plot.r"
 
 # run the docker container with the R script with chat gpt.
 docker run --rm \
