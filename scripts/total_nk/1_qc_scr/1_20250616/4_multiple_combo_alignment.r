@@ -15,7 +15,7 @@ library(RColorBrewer)
 # Settings & Paths
 # ------------------------- #
 output_dir <- "/home/outputs/totalNK_outputs/1_qc/1_20250616_outs"
-pdf_base_dir <- file.path(output_dir, "pdf", "4_cluster_align")
+pdf_base_dir <- file.path(output_dir, "pdf", "4_cluster_align_filtering")
 dir.create(pdf_base_dir, recursive = TRUE, showWarnings = FALSE)
 
 rds_file <- file.path(output_dir, "rds", "merged_seurat_analysis_20250616.rds")
@@ -58,7 +58,7 @@ for (dims in dims_list) {
     split_objs <- PrepSCTIntegration(split_objs, anchor.features = features)
     
     # ------------------------- #
-    # Marker Discovery
+    # Marker Discovery (with filtering)
     # ------------------------- #
     marker_list <- list()
     for (a in animals) {
@@ -69,7 +69,8 @@ for (dims in dims_list) {
         only.pos = TRUE,
         logfc.threshold = 0.25,
         min.pct = 0.1
-      )
+      ) %>% 
+        filter(p_val_adj < 0.05, abs(avg_log2FC) > 0.25)  # ← Added filtering here
     }
     
     # ------------------------- #
