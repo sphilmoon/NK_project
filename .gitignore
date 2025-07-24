@@ -16,7 +16,20 @@ outputs/nkp46_outputs/grok
 outputs/totalNK_outputs/2_umap/wo_51_52/csv/metadata_with_genes_dims25_res0.3.csv
 
 outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/merged/*.csv
-outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/merged/SCT
+outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/merged/SCT/*.csv
 outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/individual/SCT
 outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/individual/Log*
 outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/test*
+
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims15_res0.5/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims15_res0.75/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims20_res0.25/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims20_res0.5/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims20_res0.75/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims25_res0.25/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims25_res0.5/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims25_res0.75/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims30_res0.25/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims30_res0.5/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/pdf/4_cluster_align_filtering/dims30_res0.75/
+outputs/totalNK_outputs/1_qc/1_20250616_outs/tsv/merged/3_merged_DEGs_outs_counts/
